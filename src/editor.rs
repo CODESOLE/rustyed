@@ -49,16 +49,19 @@ pub fn get_input() -> Option<Command> {
         Some(Command::MoveRight)
     } else if is_key_pressed(KeyCode::Backspace) {
         Some(Command::Delete)
-    } else if input::get_char_pressed().is_some() {
-        if is_key_down(KeyCode::LeftShift) {
-            Some(Command::CharPressed(
-                input::get_char_pressed().unwrap().to_ascii_uppercase(),
-            ))
-        } else {
-            Some(Command::CharPressed(input::get_char_pressed().unwrap()))
-        }
     } else {
-        None
+        if let Some(c) = input::get_char_pressed() {
+            if !c.is_alphanumeric() {
+                return None;
+            }
+            if is_key_down(KeyCode::LeftShift) {
+                Some(Command::CharPressed(c.to_ascii_uppercase()))
+            } else {
+                Some(Command::CharPressed(c))
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -171,9 +174,6 @@ pub fn update_state(ctx: &mut Context) {
             }
         }),
         Some(Command::CharPressed(c)) => {
-            if !c.is_alphanumeric() {
-                return ();
-            }
             ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
                 if ctx.curr_cursor_pos.1 as usize == i {
                     s.insert(ctx.curr_cursor_pos.0 as usize, c);
