@@ -62,7 +62,7 @@ pub async fn render(ctx: &Context) {
         cursor_to_render.coord.1 - 12f32,
         cursor_to_render.bound.0,
         cursor_to_render.bound.1,
-        Color::from_rgba(23, 43, 125, 150),
+        ctx.cursor_col,
     );
     next_frame().await
 }

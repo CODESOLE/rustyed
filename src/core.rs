@@ -12,6 +12,7 @@ pub struct Context {
     pub bg_color: Color,
     pub font: Font,
     pub font_color: Color,
+    pub cursor_col: Color,
     pub font_size: u16,
     pub buffer: Buffer,
     pub cells: Vec<Cell>,
@@ -27,6 +28,7 @@ impl Default for Context {
             bg_color: color_u8!(0, 0, 0, 255),
             font: Default::default(),
             font_color: color_u8!(255, 255, 255, 255),
+            cursor_col: color_u8!(200, 200, 200, 255),
             font_size: 10,
             buffer: Default::default(),
             cells: Default::default(),
@@ -46,6 +48,9 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     }
     if let Some(foncol) = conf.font_col {
         ctx.font_color = color_ascii_to_4u8(&foncol);
+    }
+    if let Some(curcol) = conf.cursor_col {
+        ctx.cursor_col = color_ascii_to_4u8(&curcol);
     }
     if let Some(fontsize) = conf.font_size {
         ctx.font_size = fontsize

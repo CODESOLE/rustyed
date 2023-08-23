@@ -9,6 +9,7 @@ pub struct Config {
     pub font_col: Option<String>,
     pub font_size: Option<String>,
     pub font: Option<String>,
+    pub cursor_col: Option<String>,
 }
 
 impl Default for Config {
@@ -18,6 +19,7 @@ impl Default for Config {
             font_col: None,
             font_size: None,
             font: None,
+            cursor_col: None,
         }
     }
 }
@@ -63,11 +65,15 @@ pub fn parse_config(conf_path: &str) -> Result<Config, ini::Error> {
     let fontcol = style
         .get("font_col")
         .expect("'font_col' property could not be found!");
+    let cur_col = style
+        .get("cursor_col")
+        .expect("'cursor_col' property could not be found!");
 
     Ok(Config {
         bg_col: Some(bgcol.to_string()),
         font_col: Some(fontcol.to_string()),
         font_size: Some(fontsize.to_string()),
         font: Some(fontt.to_string()),
+        cursor_col: Some(cur_col.to_string()),
     })
 }
