@@ -1,3 +1,0 @@
-target/debug/rustyed.exe
--f Cargo.toml
-cargo build
