@@ -18,6 +18,7 @@ pub struct Context {
     pub cells: Vec<Cell>,
     pub active_buf: PathBuf,
     pub is_exit: bool,
+    pub vert_cell_count: (usize, usize),
 }
 
 impl Default for Context {
@@ -34,6 +35,7 @@ impl Default for Context {
             cells: Default::default(),
             active_buf: Default::default(),
             is_exit: false,
+            vert_cell_count: (0, 10),
         }
     }
 }
@@ -60,6 +62,7 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     ctx.buffer = Buffer::new(file);
     ctx.buffer.read_to_buffer(file);
     ctx.active_buf = file.to_owned();
+    ctx.vert_cell_count = (0, screen_height() as usize / ctx.font_size as usize + 1);
 
     from_str_to_cells(ctx);
 }
