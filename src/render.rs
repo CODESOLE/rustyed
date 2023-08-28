@@ -17,9 +17,9 @@ pub fn from_str_to_cells(ctx: &mut Context) {
     let end_rng = std::cmp::min(
         ctx.vert_cell_count.0 + ctx.vert_cell_count.1 as usize,
         ctx.buffer.buf.len() - 1,
-    );
+    ) - 1;
 
-    for (i, s) in ctx.buffer.buf[ctx.vert_cell_count.0..=end_rng]
+    for (i, s) in ctx.buffer.buf[ctx.vert_cell_count.0..end_rng]
         .iter_mut()
         .enumerate()
     {
@@ -73,7 +73,6 @@ pub async fn render(ctx: &Context) {
         .filter(|c| c.pos == ctx.curr_cursor_pos)
         .next()
         .unwrap();
-    // dbg!(cursor_to_render);
     draw_rectangle(
         cursor_to_render.coord.0,
         cursor_to_render.coord.1 - 12f32,
