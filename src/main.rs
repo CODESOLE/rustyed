@@ -26,23 +26,24 @@ const DEF_CONF_PATH: &str = "./rustyed.conf.ini";
 async fn main() {
     let mut ctx: Context = Default::default();
     let args = Cli::parse();
-    if !args.file.is_file() {
-        panic!("Specified --file argument is not a file!");
-    }
-    // init
-    if let Some(config_path) = args.config.as_deref() {
-        println!("Using this file for config: {}", config_path.display());
-        init(&mut ctx, &config_path.display().to_string(), &args.file).await;
-    } else {
-        println!(
-            "No config file specified! Using default config file: {}",
-            DEF_CONF_PATH
-        );
-        init(&mut ctx, DEF_CONF_PATH, &args.file).await;
-    }
+    if args.file.is_file() {
+        // init
+        if let Some(config_path) = args.config.as_deref() {
+            println!("Using this file for config: {}", config_path.display());
+            init(&mut ctx, &config_path.display().to_string(), &args.file).await;
+        } else {
+            println!(
+                "No config file specified! Using default config file: {}",
+                DEF_CONF_PATH
+            );
+            init(&mut ctx, DEF_CONF_PATH, &args.file).await;
+        }
 
-    while !ctx.is_exit {
-        update_state(&mut ctx);
-        render(&mut ctx).await;
+        while !ctx.is_exit {
+            update_state(&mut ctx);
+            render(&mut ctx).await;
+        }
+    } else {
+        eprintln!("Specified --file argument is not a file!");
     }
 }
