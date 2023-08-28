@@ -25,7 +25,7 @@ impl Buffer {
             .open(&self.name)
             .expect("Error occured while opening or creating file!");
         file.write_all(&self.buf.concat().as_bytes())
-            .expect("Error occured while writing to a file!");
+            .expect("Error occured while writing to file!");
     }
     pub fn read_to_buffer(&mut self, p: &PathBuf) {
         let mut buf: String = String::new();
