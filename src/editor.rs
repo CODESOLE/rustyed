@@ -3,7 +3,10 @@ use macroquad::{
     prelude::{is_key_down, is_key_pressed, is_quit_requested, screen_height, KeyCode},
 };
 
-use crate::{core::Context, render::{from_str_to_cells, from_cells_to_string}};
+use crate::{
+    core::Context,
+    render::{from_cells_to_string, from_str_to_cells},
+};
 
 pub enum Command {
     Exit,
@@ -47,7 +50,7 @@ pub fn get_input() -> Option<Command> {
         Some(Command::MoveLeft)
     } else if is_key_pressed(KeyCode::Right) {
         Some(Command::MoveRight)
-    } else if is_key_pressed(KeyCode::Backspace) {
+    } else if is_key_pressed(KeyCode::Delete) {
         Some(Command::Delete)
     } else {
         if let Some(c) = input::get_char_pressed() {
@@ -71,7 +74,6 @@ pub fn update_state(ctx: &mut Context) {
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
-        // TODO: apply all movements the view_buffer
         Some(Command::WordMoveRight) => {
             let view_buffer = from_cells_to_string(&ctx.cells);
             let row = &view_buffer[ctx.curr_cursor_pos.1];
@@ -98,24 +100,33 @@ pub fn update_state(ctx: &mut Context) {
                 .0;
         }
         Some(Command::PageUp) => {
-            ctx.vert_cell_count.0 =
-                std::cmp::max(ctx.vert_cell_count.0 - ctx.vert_cell_count.1 as usize, 0);
+            ctx.vert_cell_count.0 = std::cmp::max(
+                ctx.vert_cell_count
+                    .0
+                    .saturating_sub(ctx.vert_cell_count.1 as usize),
+                0,
+            );
 
             ctx.curr_cursor_pos.0 = 0;
             ctx.curr_cursor_pos.1 = ctx.vert_cell_count.0 % ctx.vert_cell_count.1;
             from_str_to_cells(ctx);
+            dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::PageDown) => {
             ctx.vert_cell_count.0 = std::cmp::min(
-                ctx.vert_cell_count.0 + ctx.vert_cell_count.1 as usize,
+                ctx.vert_cell_count
+                    .0
+                    .saturating_add(ctx.vert_cell_count.1 as usize),
                 ctx.buffer.buf.len() - 1,
             );
 
             ctx.curr_cursor_pos.0 = 0;
             ctx.curr_cursor_pos.1 = ctx.vert_cell_count.0 % ctx.vert_cell_count.1;
             from_str_to_cells(ctx);
+            dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::MoveUp) => {
+            let view_buffer = from_cells_to_string(&ctx.cells);
             if ctx.curr_cursor_pos.1 == 0 {
                 ();
             } else {
@@ -129,7 +140,7 @@ pub fn update_state(ctx: &mut Context) {
                 {
                     ctx.curr_cursor_pos.1 -= 1;
                 } else {
-                    ctx.curr_cursor_pos.0 = ctx.buffer.buf[ctx.curr_cursor_pos.1 - 1]
+                    ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 - 1]
                         .char_indices()
                         .last()
                         .unwrap()
@@ -140,7 +151,8 @@ pub fn update_state(ctx: &mut Context) {
             dbg!(ctx.curr_cursor_pos);
         }
         Some(Command::MoveDown) => {
-            if ctx.curr_cursor_pos.1 == ctx.buffer.buf.len() - 1 {
+            let view_buffer = from_cells_to_string(&ctx.cells);
+            if ctx.curr_cursor_pos.1 == view_buffer.len() - 1 {
                 ()
             } else {
                 if ctx
@@ -153,7 +165,7 @@ pub fn update_state(ctx: &mut Context) {
                 {
                     ctx.curr_cursor_pos.1 += 1
                 } else {
-                    ctx.curr_cursor_pos.0 = ctx.buffer.buf[ctx.curr_cursor_pos.1 + 1]
+                    ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 + 1]
                         .char_indices()
                         .last()
                         .unwrap()
@@ -172,7 +184,8 @@ pub fn update_state(ctx: &mut Context) {
             dbg!(ctx.curr_cursor_pos);
         }
         Some(Command::MoveRight) => {
-            if ctx.buffer.buf[ctx.curr_cursor_pos.1]
+            let view_buffer = from_cells_to_string(&ctx.cells);
+            if view_buffer[ctx.curr_cursor_pos.1]
                 .chars()
                 .nth(ctx.curr_cursor_pos.0)
                 .unwrap()
@@ -184,6 +197,7 @@ pub fn update_state(ctx: &mut Context) {
             }
             dbg!(ctx.curr_cursor_pos);
         }
+        // TODO: apply all movements the view_buffer
         Some(Command::Delete) => ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
             if ctx.curr_cursor_pos.1 == i {
                 s.remove(ctx.curr_cursor_pos.0);
