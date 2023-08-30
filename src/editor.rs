@@ -70,6 +70,7 @@ pub fn get_input() -> Option<Command> {
 
 pub fn update_state(ctx: &mut Context) {
     ctx.vert_cell_count.1 = screen_height() as usize / ctx.font_size as usize + 1;
+    from_str_to_cells(ctx);
 
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
@@ -124,52 +125,71 @@ pub fn update_state(ctx: &mut Context) {
             // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::MoveUp) => {
+            if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
+                return ();
+            }
+            if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.buf.get(ctx.vert_cell_count.0 - 1).is_some()
+            {
+                ctx.vert_cell_count.0 -= 1;
+                ctx.curr_cursor_pos = (0, 0);
+                from_str_to_cells(ctx);
+                return ();
+            }
             let view_buffer = from_cells_to_string(&ctx.cells);
-            if ctx.curr_cursor_pos.1 == 0 {
-                ();
+            if ctx
+                .cells
+                .iter()
+                .find(|c| {
+                    (c.pos.1 == ctx.curr_cursor_pos.1 - 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
+                })
+                .is_some()
+            {
+                ctx.curr_cursor_pos.1 -= 1;
             } else {
-                if ctx
-                    .cells
-                    .iter()
-                    .find(|c| {
-                        (c.pos.1 == ctx.curr_cursor_pos.1 - 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
-                    })
-                    .is_some()
-                {
-                    ctx.curr_cursor_pos.1 -= 1;
-                } else {
-                    ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 - 1]
-                        .char_indices()
-                        .last()
-                        .unwrap()
-                        .0;
-                    ctx.curr_cursor_pos.1 -= 1;
-                }
+                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 - 1]
+                    .char_indices()
+                    .last()
+                    .unwrap()
+                    .0;
+                ctx.curr_cursor_pos.1 -= 1;
             }
             dbg!(ctx.curr_cursor_pos);
         }
         Some(Command::MoveDown) => {
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            if ctx.curr_cursor_pos.1 == view_buffer.len() - 1 {
-                ()
-            } else {
-                if ctx
-                    .cells
-                    .iter()
-                    .find(|c| {
-                        (c.pos.1 == ctx.curr_cursor_pos.1 + 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
-                    })
+            if ctx.vert_cell_count.0 == ctx.buffer.buf.len() - 1
+                || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.buf.len() - 1)
+            {
+                return ();
+            }
+            if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
+                && ctx
+                    .buffer
+                    .buf
+                    .get((ctx.vert_cell_count.0 + ctx.vert_cell_count.1) + 1)
                     .is_some()
-                {
-                    ctx.curr_cursor_pos.1 += 1
-                } else {
-                    ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 + 1]
-                        .char_indices()
-                        .last()
-                        .unwrap()
-                        .0;
-                    ctx.curr_cursor_pos.1 += 1
-                }
+            {
+                ctx.vert_cell_count.0 += 1;
+                ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 1);
+                from_str_to_cells(ctx);
+                return ();
+            }
+            let view_buffer = from_cells_to_string(&ctx.cells);
+            if ctx
+                .cells
+                .iter()
+                .find(|c| {
+                    (c.pos.1 == ctx.curr_cursor_pos.1 + 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
+                })
+                .is_some()
+            {
+                ctx.curr_cursor_pos.1 += 1
+            } else {
+                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1] // issue has previously it was curpos.1 - 1
+                    .char_indices()
+                    .last()
+                    .unwrap()
+                    .0;
+                ctx.curr_cursor_pos.1 += 1
             }
             dbg!(ctx.curr_cursor_pos);
         }
@@ -196,18 +216,18 @@ pub fn update_state(ctx: &mut Context) {
             dbg!(ctx.curr_cursor_pos);
         }
         // TODO: apply all movements the view_buffer
-        Some(Command::Delete) => ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
+        Some(Command::Delete) => ()/*ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
             if ctx.curr_cursor_pos.1 == i {
                 s.remove(ctx.curr_cursor_pos.0);
             }
-        }),
-        Some(Command::CharPressed(c)) => {
+        })*/,
+        Some(Command::CharPressed(_c)) => ()/*{
             ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
                 if ctx.curr_cursor_pos.1 == i {
                     s.insert(ctx.curr_cursor_pos.0, c);
                 }
             })
-        }
+        }*/,
         None => (),
     }
 }

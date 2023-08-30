@@ -74,7 +74,7 @@ pub async fn render(ctx: &Context) {
         .iter()
         .filter(|c| c.pos == ctx.curr_cursor_pos)
         .next()
-        .unwrap();
+        .unwrap(); // thread 'main' panicked at 'called `Option::unwrap()` on a `None` value', src/render.rs:77:10 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
     draw_rectangle(
         cursor_to_render.coord.0,
         cursor_to_render.coord.1 - 12f32,
