@@ -15,9 +15,11 @@ pub fn from_str_to_cells(ctx: &mut Context) {
     let mut x_coor;
     let mut y_coor = 0f32;
     let end_rng = std::cmp::min(
-        ctx.vert_cell_count.0 + ctx.vert_cell_count.1 as usize,
-        ctx.buffer.buf.len() - 1,
-    ) - 1;
+        ctx.vert_cell_count.0 + ctx.vert_cell_count.1,
+        ctx.buffer.buf.len(),
+    );
+    dbg!(ctx.vert_cell_count.0);
+    dbg!(end_rng);
 
     for (i, s) in ctx.buffer.buf[ctx.vert_cell_count.0..end_rng]
         .iter_mut()

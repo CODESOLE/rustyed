@@ -107,23 +107,21 @@ pub fn update_state(ctx: &mut Context) {
                 0,
             );
 
-            ctx.curr_cursor_pos.0 = 0;
-            ctx.curr_cursor_pos.1 = ctx.vert_cell_count.0 % ctx.vert_cell_count.1;
+            ctx.curr_cursor_pos = (0, 0);
             from_str_to_cells(ctx);
-            dbg!(from_cells_to_string(&ctx.cells));
+            // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::PageDown) => {
             ctx.vert_cell_count.0 = std::cmp::min(
                 ctx.vert_cell_count
                     .0
                     .saturating_add(ctx.vert_cell_count.1 as usize),
-                ctx.buffer.buf.len() - 1,
-            );
+                ctx.buffer.buf.len(),
+            ) - 1;
 
-            ctx.curr_cursor_pos.0 = 0;
-            ctx.curr_cursor_pos.1 = ctx.vert_cell_count.0 % ctx.vert_cell_count.1;
+            ctx.curr_cursor_pos = (0, 0);
             from_str_to_cells(ctx);
-            dbg!(from_cells_to_string(&ctx.cells));
+            // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::MoveUp) => {
             let view_buffer = from_cells_to_string(&ctx.cells);
