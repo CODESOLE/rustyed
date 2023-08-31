@@ -52,15 +52,26 @@ pub fn from_cells_to_string(cells: &Vec<Cell>) -> Vec<String> {
 }
 
 fn draw_cursor_location(ctx: &Context) {
-    let loc_str = format!("{}:{}", ctx.vert_cell_count.0 + 1, ctx.curr_cursor_pos.0 + 1);
+    let loc_str = format!(
+        "{}:{}:{}",
+        ctx.active_buf.display(),
+        ctx.vert_cell_count.0 + 1,
+        ctx.curr_cursor_pos.0 + 1
+    );
     let offset = measure_text(loc_str.as_str(), Some(ctx.font), ctx.font_size, 1f32).width;
     let win_width = window::screen_width();
     let x = win_width - offset;
-    draw_rectangle(x, 0f32, offset, ctx.font_size as f32, color_u8!(255, 0, 0, 255));
+    draw_rectangle(
+        x,
+        0f32,
+        offset,
+        ctx.font_size as f32,
+        color_u8!(255, 0, 0, 255),
+    );
     draw_text_ex(
         loc_str.as_str(),
         x,
-        0f32,
+        14f32,
         TextParams {
             font_size: ctx.font_size,
             color: color_u8!(0, 0, 0, 255),
