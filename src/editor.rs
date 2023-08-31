@@ -12,6 +12,8 @@ pub enum Command {
     Exit,
     PageUp,
     PageDown,
+    GoTop,
+    GoBottom,
     Home,
     End,
     Save,
@@ -32,10 +34,12 @@ pub fn get_input() -> Option<Command> {
         Some(Command::WordMoveLeft)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Right) {
         Some(Command::WordMoveRight)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageUp) {
+        Some(Command::GoTop)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
+        Some(Command::GoBottom)
     } else if is_key_pressed(KeyCode::Escape) || is_quit_requested() {
         Some(Command::Exit)
-    } else if is_key_pressed(KeyCode::Up) {
-        Some(Command::MoveUp)
     } else if is_key_pressed(KeyCode::PageUp) {
         Some(Command::PageUp)
     } else if is_key_pressed(KeyCode::PageDown) {
@@ -44,6 +48,8 @@ pub fn get_input() -> Option<Command> {
         Some(Command::Home)
     } else if is_key_pressed(KeyCode::End) {
         Some(Command::End)
+    } else if is_key_pressed(KeyCode::Up) {
+        Some(Command::MoveUp)
     } else if is_key_pressed(KeyCode::Down) {
         Some(Command::MoveDown)
     } else if is_key_pressed(KeyCode::Left) {
@@ -68,10 +74,28 @@ pub fn get_input() -> Option<Command> {
     }
 }
 
+fn update_view_buffer(ctx: &mut Context) {
+    ctx.vert_cell_count.1 =
+        macroquad::window::screen_height() as usize / ctx.font_size as usize + 1;
+    from_str_to_cells(ctx);
+}
+
 pub fn update_state(ctx: &mut Context) {
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
+        Some(Command::GoTop) => {
+            update_view_buffer(ctx);
+            ctx.vert_cell_count.0 = 0;
+            ctx.curr_cursor_pos = (0, 0);
+            from_str_to_cells(ctx);
+        }
+        Some(Command::GoBottom) => {
+            update_view_buffer(ctx);
+            ctx.vert_cell_count.0 = ctx.buffer.buf.len() - 1;
+            ctx.curr_cursor_pos = (0, 0);
+            from_str_to_cells(ctx);
+        }
         Some(Command::WordMoveRight) => {
             let view_buffer = from_cells_to_string(&ctx.cells);
             let row = &view_buffer[ctx.curr_cursor_pos.1];
@@ -85,7 +109,7 @@ pub fn update_state(ctx: &mut Context) {
             let row = &view_buffer[ctx.curr_cursor_pos.1];
             let sub = &row[..ctx.curr_cursor_pos.0];
             if let Some(space_indx) = sub.rfind(' ') {
-                ctx.curr_cursor_pos.0 -= ctx.curr_cursor_pos.0 - space_indx + 1;
+                ctx.curr_cursor_pos.0 -= ctx.curr_cursor_pos.0 - space_indx;
             }
         }
         Some(Command::Home) => ctx.curr_cursor_pos.0 = 0,
@@ -98,6 +122,7 @@ pub fn update_state(ctx: &mut Context) {
                 .0;
         }
         Some(Command::PageUp) => {
+            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = std::cmp::max(
                 ctx.vert_cell_count
                     .0
@@ -110,6 +135,7 @@ pub fn update_state(ctx: &mut Context) {
             // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::PageDown) => {
+            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = std::cmp::min(
                 ctx.vert_cell_count
                     .0
@@ -127,11 +153,13 @@ pub fn update_state(ctx: &mut Context) {
             }
             if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.buf.get(ctx.vert_cell_count.0 - 1).is_some()
             {
+                update_view_buffer(ctx);
                 ctx.vert_cell_count.0 -= 1;
                 ctx.curr_cursor_pos = (0, 0);
                 from_str_to_cells(ctx);
                 return ();
             }
+            update_view_buffer(ctx);
             let view_buffer = from_cells_to_string(&ctx.cells);
             if ctx
                 .cells
@@ -165,11 +193,13 @@ pub fn update_state(ctx: &mut Context) {
                     .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
                     .is_some()
             {
+                update_view_buffer(ctx);
                 ctx.vert_cell_count.0 += 1;
                 ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
                 from_str_to_cells(ctx);
                 return ();
             }
+            update_view_buffer(ctx);
             let view_buffer = from_cells_to_string(&ctx.cells);
             if ctx
                 .cells
