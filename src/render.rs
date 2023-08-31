@@ -81,8 +81,28 @@ fn draw_cursor_location(ctx: &Context) {
     );
 }
 
+fn draw_cursor_line(ctx: &Context, cursor: &Cell) {
+    let width = macroquad::window::screen_width();
+    draw_rectangle(
+        0f32,
+        cursor.coord.1 - 12f32,
+        width,
+        ctx.font_size as f32,
+        color_u8!(255, 255, 255, 10),
+    );
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
+    let cursor_to_render = ctx
+        .cells
+        .iter()
+        .filter(|c| c.pos == ctx.curr_cursor_pos)
+        .next()
+        .unwrap();
+    if ctx.is_cursorline {
+        draw_cursor_line(ctx, cursor_to_render);
+    }
     for cell in ctx.cells.iter() {
         if cell.c == '\n' {
             continue;
@@ -99,12 +119,6 @@ pub async fn render(ctx: &Context) {
             },
         );
     }
-    let cursor_to_render = ctx
-        .cells
-        .iter()
-        .filter(|c| c.pos == ctx.curr_cursor_pos)
-        .next()
-        .unwrap();
     draw_rectangle(
         cursor_to_render.coord.0,
         cursor_to_render.coord.1 - 12f32,

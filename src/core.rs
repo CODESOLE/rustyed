@@ -18,6 +18,7 @@ pub struct Context {
     pub cells: Vec<Cell>,
     pub active_buf: PathBuf,
     pub is_exit: bool,
+    pub is_cursorline: bool,
     pub vert_cell_count: (usize, usize),
 }
 
@@ -32,6 +33,7 @@ impl Default for Context {
             cursor_col: color_u8!(200, 200, 200, 255),
             font_size: 10,
             buffer: Default::default(),
+            is_cursorline: false,
             cells: Default::default(),
             active_buf: Default::default(),
             is_exit: false,
@@ -53,6 +55,12 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     }
     if let Some(curcol) = conf.cursor_col {
         ctx.cursor_col = color_ascii_to_4u8(&curcol);
+    }
+    if let Some(cur_line) = conf.cursor_line {
+        let opt = cur_line
+            .parse::<bool>()
+            .expect("Error happened while parsing cursor_line property! It should be bool!");
+        ctx.is_cursorline = opt;
     }
     if let Some(fontsize) = conf.font_size {
         ctx.font_size = fontsize
