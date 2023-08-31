@@ -26,7 +26,7 @@ pub enum Command {
 }
 
 pub fn get_input() -> Option<Command> {
-    if is_key_down(KeyCode::LeftControl) && is_key_down(KeyCode::S) {
+    if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::S) {
         Some(Command::Save)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Left) {
         Some(Command::WordMoveLeft)
