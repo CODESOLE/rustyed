@@ -1,6 +1,6 @@
 use macroquad::{
     input,
-    prelude::{is_key_down, is_key_pressed, is_quit_requested, screen_height, KeyCode},
+    prelude::{is_key_down, is_key_pressed, is_quit_requested, KeyCode},
 };
 
 use crate::{
@@ -69,9 +69,6 @@ pub fn get_input() -> Option<Command> {
 }
 
 pub fn update_state(ctx: &mut Context) {
-    ctx.vert_cell_count.1 = screen_height() as usize / ctx.font_size as usize + 1;
-    from_str_to_cells(ctx);
-
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
@@ -165,11 +162,11 @@ pub fn update_state(ctx: &mut Context) {
                 && ctx
                     .buffer
                     .buf
-                    .get((ctx.vert_cell_count.0 + ctx.vert_cell_count.1) + 1)
+                    .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
                     .is_some()
             {
                 ctx.vert_cell_count.0 += 1;
-                ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 1);
+                ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
                 from_str_to_cells(ctx);
                 return ();
             }
@@ -184,7 +181,10 @@ pub fn update_state(ctx: &mut Context) {
             {
                 ctx.curr_cursor_pos.1 += 1
             } else {
-                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1] // issue has previously it was curpos.1 - 1
+                if view_buffer.get(ctx.curr_cursor_pos.1 + 1).is_none() {
+                    return;
+                }
+                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 + 1]
                     .char_indices()
                     .last()
                     .unwrap()
