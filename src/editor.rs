@@ -1,6 +1,9 @@
 use macroquad::{
     input,
-    prelude::{is_key_down, is_key_pressed, is_quit_requested, KeyCode},
+    prelude::{
+        is_key_down, is_key_pressed, is_mouse_button_pressed, is_quit_requested, KeyCode,
+        MouseButton,
+    },
 };
 
 use crate::{
@@ -24,6 +27,7 @@ pub enum Command {
     Delete,
     WordMoveLeft,
     WordMoveRight,
+    MouseLeftClick,
     CharPressed(char),
 }
 
@@ -42,6 +46,8 @@ pub fn get_input() -> Option<Command> {
         Some(Command::Exit)
     } else if is_key_pressed(KeyCode::PageUp) {
         Some(Command::PageUp)
+    } else if is_mouse_button_pressed(MouseButton::Left) {
+        Some(Command::MouseLeftClick)
     } else if is_key_pressed(KeyCode::PageDown) {
         Some(Command::PageDown)
     } else if is_key_pressed(KeyCode::Home) {
@@ -84,6 +90,17 @@ pub fn update_state(ctx: &mut Context) {
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
+        Some(Command::MouseLeftClick) => {
+            let (x, y) = input::mouse_position();
+            let cell_y = (y / ctx.font_size as f32).floor() as usize;
+            let cell = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.coord.0 < x && x < (c.coord.0 + c.bound.0));
+            if let Some(c) = cell {
+                ctx.curr_cursor_pos.0 = c.pos.0;
+            } else {
+                ctx.curr_cursor_pos.0 = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.c == '\n').unwrap().pos.0;
+            }
+            ctx.curr_cursor_pos.1 = cell_y;
+        }
         Some(Command::GoTop) => {
             update_view_buffer(ctx);
             ctx.vert_cell_count.0 = 0;
