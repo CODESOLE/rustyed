@@ -1,6 +1,6 @@
 use macroquad::{prelude::*, window};
 
-use crate::core::Context;
+use crate::core::{Context, Modes};
 
 #[derive(Default, Debug)]
 pub struct Cell {
@@ -92,6 +92,28 @@ fn draw_cursor_line(ctx: &Context, cursor: &Cell) {
     );
 }
 
+pub fn draw_go_to_line_prompt(ctx: &Context, line: &str) {
+    let (win_w, win_h) = (screen_width(), screen_height());
+    draw_rectangle(
+        0f32,
+        win_h - ctx.font_size as f32,
+        win_w,
+        ctx.font_size as f32,
+        color_u8!(255, 0, 0, 255),
+    );
+    draw_text_ex(
+        &format!(" Line Number: {}", line),
+        0f32,
+        win_h - ctx.font_size as f32 + 14f32,
+        TextParams {
+            font_size: ctx.font_size,
+            color: color_u8!(0, 0, 0, 255),
+            font: ctx.font,
+            ..Default::default()
+        },
+    );
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
     let cursor_to_render = ctx
@@ -127,5 +149,8 @@ pub async fn render(ctx: &Context) {
         ctx.cursor_col,
     );
     draw_cursor_location(ctx);
+    if ctx.mode == Modes::GoToLine {
+        draw_go_to_line_prompt(ctx, &ctx.prompt_input);
+    }
     next_frame().await
 }

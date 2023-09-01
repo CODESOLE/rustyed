@@ -7,8 +7,8 @@ use macroquad::{
 };
 
 use crate::{
-    core::Context,
-    render::{from_cells_to_string, from_str_to_cells},
+    core::{Context, Modes},
+    render::{from_cells_to_string, from_str_to_cells, render},
 };
 
 pub enum Command {
@@ -17,6 +17,7 @@ pub enum Command {
     PageDown,
     GoTop,
     GoBottom,
+    GoToLine,
     Home,
     End,
     Save,
@@ -38,6 +39,8 @@ pub fn get_input() -> Option<Command> {
         Some(Command::WordMoveLeft)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Right) {
         Some(Command::WordMoveRight)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::G) {
+        Some(Command::GoToLine)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageUp) {
         Some(Command::GoTop)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
@@ -86,10 +89,44 @@ fn update_view_buffer(ctx: &mut Context) {
     from_str_to_cells(ctx);
 }
 
-pub fn update_state(ctx: &mut Context) {
+pub async fn handle_go_to_line(ctx: &mut Context) -> usize {
+    loop {
+        if let Some(key) = input::get_last_key_pressed() {
+            if key == KeyCode::Escape {
+                ctx.prompt_input.clear();
+                return ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1;
+            }
+            if key == KeyCode::Enter {
+                break;
+            }
+            if let Some(c) = input::get_char_pressed() {
+                if c.is_ascii_digit() {
+                    ctx.prompt_input.push(c);
+                }
+            }
+        }
+        render(ctx).await;
+    }
+    return ctx
+        .prompt_input
+        .parse::<usize>()
+        .unwrap_or(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
+}
+
+pub async fn update_state(ctx: &mut Context) {
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
+        Some(Command::GoToLine) => {
+            ctx.mode = Modes::GoToLine;
+            let line = handle_go_to_line(ctx).await;
+            let line = std::cmp::max(std::cmp::min(ctx.buffer.buf.len(), line), 1);
+            ctx.vert_cell_count.0 = line - 1;
+            ctx.curr_cursor_pos = (0, 0);
+            update_view_buffer(ctx);
+            ctx.prompt_input.clear();
+            ctx.mode = Modes::Edit;
+        }
         Some(Command::MouseLeftClick) => {
             let (x, y) = input::mouse_position();
             let cell_y = (y / ctx.font_size as f32).floor() as usize;

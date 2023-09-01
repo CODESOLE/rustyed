@@ -6,6 +6,13 @@ use crate::{
 use macroquad::prelude::*;
 use std::path::PathBuf;
 
+#[derive(PartialEq)]
+pub enum Modes {
+    GoToLine,
+    Find,
+    Edit,
+}
+
 pub struct Context {
     pub mouse_pos: (f32, f32),
     pub curr_cursor_pos: (usize, usize),
@@ -20,6 +27,8 @@ pub struct Context {
     pub is_exit: bool,
     pub is_cursorline: bool,
     pub vert_cell_count: (usize, usize),
+    pub mode: Modes,
+    pub prompt_input: String,
 }
 
 impl Default for Context {
@@ -38,6 +47,8 @@ impl Default for Context {
             active_buf: Default::default(),
             is_exit: false,
             vert_cell_count: (0, 10),
+            mode: Modes::Edit,
+            prompt_input: String::new(),
         }
     }
 }
@@ -71,6 +82,8 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     ctx.buffer.read_to_buffer(file);
     ctx.active_buf = file.to_owned();
     ctx.vert_cell_count = (0, screen_height() as usize / ctx.font_size as usize + 1);
+    ctx.mode = Modes::Edit;
+    ctx.prompt_input = String::new();
 
     from_str_to_cells(ctx);
 }

@@ -40,7 +40,7 @@ async fn main() {
         }
 
         while !ctx.is_exit {
-            update_state(&mut ctx);
+            update_state(&mut ctx).await;
             render(&mut ctx).await;
         }
     } else {
