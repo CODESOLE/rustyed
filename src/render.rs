@@ -55,7 +55,7 @@ fn draw_cursor_location(ctx: &Context) {
     let loc_str = format!(
         "{}:{}:{}",
         ctx.active_buf.display(),
-        ctx.vert_cell_count.0 + 1,
+        ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1,
         ctx.curr_cursor_pos.0 + 1
     );
     let offset = measure_text(loc_str.as_str(), Some(ctx.font), ctx.font_size, 1f32).width;
