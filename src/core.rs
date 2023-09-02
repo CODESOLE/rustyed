@@ -13,6 +13,8 @@ pub enum Modes {
     Edit,
 }
 
+pub type SearchResults = Vec<(usize, (usize, usize))>;
+
 pub struct Context {
     pub mouse_pos: (f32, f32),
     pub curr_cursor_pos: (usize, usize),
@@ -29,6 +31,9 @@ pub struct Context {
     pub vert_cell_count: (usize, usize),
     pub mode: Modes,
     pub prompt_input: String,
+    pub search_res: SearchResults,
+    pub is_search_changed: bool,
+    pub last_searched_idx: usize,
 }
 
 impl Default for Context {
@@ -49,6 +54,9 @@ impl Default for Context {
             vert_cell_count: (0, 10),
             mode: Modes::Edit,
             prompt_input: String::new(),
+            search_res: Default::default(),
+            is_search_changed: false,
+            last_searched_idx: Default::default(),
         }
     }
 }
@@ -84,6 +92,9 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     ctx.vert_cell_count = (0, screen_height() as usize / ctx.font_size as usize + 1);
     ctx.mode = Modes::Edit;
     ctx.prompt_input = String::new();
+    ctx.search_res = Default::default();
+    ctx.is_search_changed = false;
+    ctx.last_searched_idx = Default::default();
 
     from_str_to_cells(ctx);
 }

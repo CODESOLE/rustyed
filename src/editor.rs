@@ -7,7 +7,7 @@ use macroquad::{
 };
 
 use crate::{
-    core::{Context, Modes},
+    core::{Context, Modes, SearchResults},
     render::{from_cells_to_string, from_str_to_cells, render},
 };
 
@@ -18,6 +18,7 @@ pub enum Command {
     GoTop,
     GoBottom,
     GoToLine,
+    Find,
     Home,
     End,
     Save,
@@ -41,6 +42,8 @@ pub fn get_input() -> Option<Command> {
         Some(Command::WordMoveRight)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::G) {
         Some(Command::GoToLine)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::F) {
+        Some(Command::Find)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageUp) {
         Some(Command::GoTop)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
@@ -89,7 +92,8 @@ fn update_view_buffer(ctx: &mut Context) {
     from_str_to_cells(ctx);
 }
 
-pub async fn handle_go_to_line(ctx: &mut Context) -> usize {
+pub async fn go_to_line(ctx: &mut Context) -> usize {
+    ctx.prompt_input.clear();
     loop {
         if let Some(key) = input::get_last_key_pressed() {
             if key == KeyCode::Escape {
@@ -98,6 +102,9 @@ pub async fn handle_go_to_line(ctx: &mut Context) -> usize {
             }
             if key == KeyCode::Enter {
                 break;
+            }
+            if key == KeyCode::Backspace {
+                ctx.prompt_input.pop();
             }
             if let Some(c) = input::get_char_pressed() {
                 if c.is_ascii_digit() {
@@ -113,13 +120,88 @@ pub async fn handle_go_to_line(ctx: &mut Context) -> usize {
         .unwrap_or(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
 }
 
+pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
+    ctx.prompt_input.clear();
+    let _ = input::get_char_pressed();
+    loop {
+        if let Some(key) = input::get_last_key_pressed() {
+            if key == KeyCode::Escape {
+                ctx.is_search_changed = false;
+                ctx.prompt_input.clear();
+                return (
+                    ctx.curr_cursor_pos.0,
+                    ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1,
+                );
+            }
+            if key == KeyCode::Backspace {
+                ctx.prompt_input.pop();
+            }
+            if key == KeyCode::Enter {
+                let _ = input::get_char_pressed();
+                if ctx.is_search_changed {
+                    let mut searchidx: usize = 0;
+                    let mut searchres: SearchResults = Default::default();
+                    for (i, l) in ctx.buffer.buf.iter().enumerate() {
+                        for (idx, _) in l.match_indices(&ctx.prompt_input) {
+                            searchres.push((searchidx, (idx, i)));
+                            searchidx = searchidx.saturating_add(1);
+                        }
+                    }
+                    ctx.search_res = searchres;
+                    if ctx.last_searched_idx >= ctx.search_res.len() {
+                        ctx.last_searched_idx = 0;
+                    }
+                } else {
+                    if ctx.search_res.is_empty() {
+                        return (
+                            ctx.curr_cursor_pos.0,
+                            ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1,
+                        );
+                    }
+                    if (ctx.last_searched_idx + 1) < ctx.search_res.len() {
+                        ctx.last_searched_idx += 1;
+                    } else {
+                        ctx.last_searched_idx = 0;
+                    }
+                    let pos = ctx
+                        .search_res
+                        .iter()
+                        .find(|&&(idx, _)| idx == ctx.last_searched_idx)
+                        .unwrap()
+                        .1;
+                    ctx.vert_cell_count.0 = pos.1;
+                    ctx.curr_cursor_pos = (pos.0, 0);
+                    update_view_buffer(ctx);
+                }
+                ctx.is_search_changed = false;
+            }
+            if let Some(c) = input::get_char_pressed() {
+                if c.is_ascii_graphic() || c.is_ascii_whitespace() {
+                    ctx.is_search_changed = true;
+                    ctx.prompt_input.push(c);
+                }
+            }
+        }
+        render(ctx).await;
+    }
+}
+
 pub async fn update_state(ctx: &mut Context) {
     match get_input() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
+        Some(Command::Find) => {
+            ctx.mode = Modes::Find;
+            let search_pos = find_in_buf(ctx).await;
+            ctx.vert_cell_count.0 = search_pos.1;
+            ctx.curr_cursor_pos = (search_pos.0, 0);
+            update_view_buffer(ctx);
+            ctx.prompt_input.clear();
+            ctx.mode = Modes::Edit;
+        }
         Some(Command::GoToLine) => {
             ctx.mode = Modes::GoToLine;
-            let line = handle_go_to_line(ctx).await;
+            let line = go_to_line(ctx).await;
             let line = std::cmp::max(std::cmp::min(ctx.buffer.buf.len(), line), 1);
             ctx.vert_cell_count.0 = line - 1;
             ctx.curr_cursor_pos = (0, 0);
