@@ -92,7 +92,7 @@ fn draw_cursor_line(ctx: &Context, cursor: &Cell) {
     );
 }
 
-pub fn draw_prompt(ctx: &Context, promt_text: &str, line: &str) {
+pub fn draw_go_to_prompt(ctx: &Context,line: &str) {
     let (win_w, win_h) = (screen_width(), screen_height());
     draw_rectangle(
         0f32,
@@ -102,7 +102,29 @@ pub fn draw_prompt(ctx: &Context, promt_text: &str, line: &str) {
         color_u8!(255, 0, 0, 255),
     );
     draw_text_ex(
-        &format!(" {}: {}", promt_text, line),
+        &format!(" Line Number: {}", line),
+        0f32,
+        win_h - ctx.font_size as f32 + 14f32,
+        TextParams {
+            font_size: ctx.font_size,
+            color: color_u8!(0, 0, 0, 255),
+            font: ctx.font,
+            ..Default::default()
+        },
+    );
+}
+
+pub fn draw_find_prompt(ctx: &Context,line: &str) {
+    let (win_w, win_h) = (screen_width(), screen_height());
+    draw_rectangle(
+        0f32,
+        win_h - ctx.font_size as f32,
+        win_w,
+        ctx.font_size as f32,
+        color_u8!(255, 0, 0, 255),
+    );
+    draw_text_ex(
+        &format!(" Find: {}  [{}/{}]", line, ctx.last_searched_idx + 1, ctx.search_res.len()),
         0f32,
         win_h - ctx.font_size as f32 + 14f32,
         TextParams {
@@ -150,9 +172,9 @@ pub async fn render(ctx: &Context) {
     );
     draw_cursor_location(ctx);
     if ctx.mode == Modes::GoToLine {
-        draw_prompt(ctx, "Line Number", &ctx.prompt_input);
+        draw_go_to_prompt(ctx, &ctx.prompt_input);
     } else if ctx.mode == Modes::Find {
-        draw_prompt(ctx, "Find", &ctx.prompt_input);
+        draw_find_prompt(ctx, &ctx.prompt_input);
     }
     next_frame().await
 }
