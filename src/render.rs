@@ -92,7 +92,7 @@ fn draw_cursor_line(ctx: &Context, cursor: &Cell) {
     );
 }
 
-pub fn draw_go_to_prompt(ctx: &Context,line: &str) {
+pub fn draw_go_to_prompt(ctx: &Context, line: &str) {
     let (win_w, win_h) = (screen_width(), screen_height());
     draw_rectangle(
         0f32,
@@ -114,7 +114,7 @@ pub fn draw_go_to_prompt(ctx: &Context,line: &str) {
     );
 }
 
-pub fn draw_find_prompt(ctx: &Context,line: &str) {
+pub fn draw_find_prompt(ctx: &Context, line: &str) {
     let (win_w, win_h) = (screen_width(), screen_height());
     draw_rectangle(
         0f32,
@@ -124,7 +124,16 @@ pub fn draw_find_prompt(ctx: &Context,line: &str) {
         color_u8!(255, 0, 0, 255),
     );
     draw_text_ex(
-        &format!(" Find: {}  [{}/{}]", line, ctx.last_searched_idx + 1, ctx.search_res.len()),
+        &format!(
+            " Find: {}  [{}/{}]",
+            line,
+            if !ctx.search_res.is_empty() {
+                ctx.last_searched_idx + 1
+            } else {
+                ctx.last_searched_idx
+            },
+            ctx.search_res.len()
+        ),
         0f32,
         win_h - ctx.font_size as f32 + 14f32,
         TextParams {

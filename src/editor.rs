@@ -121,7 +121,7 @@ pub async fn go_to_line(ctx: &mut Context) -> usize {
 }
 
 pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
-    ctx.prompt_input.clear();
+    ctx.prompt_input = ctx.last_searched_term.clone();
     let _ = input::get_char_pressed();
     loop {
         if let Some(key) = input::get_last_key_pressed() {
@@ -135,6 +135,7 @@ pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
             }
             if key == KeyCode::Backspace {
                 ctx.prompt_input.pop();
+                ctx.last_searched_term = ctx.prompt_input.clone();
             }
             if key == KeyCode::Enter {
                 let _ = input::get_char_pressed();
@@ -179,6 +180,7 @@ pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
                 if c.is_ascii_graphic() || c.is_ascii_whitespace() {
                     ctx.is_search_changed = true;
                     ctx.prompt_input.push(c);
+                    ctx.last_searched_term = ctx.prompt_input.clone();
                 }
             }
         }
