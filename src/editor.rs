@@ -217,10 +217,11 @@ pub async fn update_state(ctx: &mut Context) {
             let cell = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.coord.0 < x && x < (c.coord.0 + c.bound.0));
             if let Some(c) = cell {
                 ctx.curr_cursor_pos.0 = c.pos.0;
+                ctx.curr_cursor_pos.1 = cell_y;
             } else {
-                ctx.curr_cursor_pos.0 = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.c == '\n').unwrap().pos.0;
+                let cel = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.c == '\n');
+                if cel.is_some() { ctx.curr_cursor_pos = (cel.unwrap().pos.0, cell_y); } else { ctx.curr_cursor_pos = (0, 0); }
             }
-            ctx.curr_cursor_pos.1 = cell_y;
         }
         Some(Command::GoTop) => {
             update_view_buffer(ctx);
