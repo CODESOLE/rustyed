@@ -159,10 +159,18 @@ pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
                             ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1,
                         );
                     }
-                    if (ctx.last_searched_idx + 1) < ctx.search_res.len() {
-                        ctx.last_searched_idx += 1;
+                    if is_key_down(KeyCode::LeftShift) {
+                        if (ctx.last_searched_idx as isize - 1) >= 0 {
+                            ctx.last_searched_idx -= 1;
+                        } else {
+                            ctx.last_searched_idx = ctx.search_res.len() - 1;
+                        }
                     } else {
-                        ctx.last_searched_idx = 0;
+                        if (ctx.last_searched_idx + 1) < ctx.search_res.len() {
+                            ctx.last_searched_idx += 1;
+                        } else {
+                            ctx.last_searched_idx = 0;
+                        }
                     }
                     let pos = ctx
                         .search_res
