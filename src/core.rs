@@ -9,7 +9,8 @@ use std::path::PathBuf;
 #[derive(PartialEq)]
 pub enum Modes {
     GoToLine,
-    Find,
+    FindCaseSensitive,
+    FindCaseInSensitive,
     Edit,
 }
 

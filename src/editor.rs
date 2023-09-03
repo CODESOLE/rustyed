@@ -18,8 +18,10 @@ pub enum Command {
     GoTop,
     GoBottom,
     GoToLine,
-    Find,
+    FindCaseSensitive,
+    FindInCaseSensitive,
     Home,
+    Help,
     End,
     Save,
     MoveLeft,
@@ -33,17 +35,28 @@ pub enum Command {
     CharPressed(char),
 }
 
-pub fn get_input() -> Option<Command> {
+pub fn get_command() -> Option<Command> {
     if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::S) {
         Some(Command::Save)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Left) {
         Some(Command::WordMoveLeft)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::H) {
+        Some(Command::Help)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Right) {
         Some(Command::WordMoveRight)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::G) {
         Some(Command::GoToLine)
-    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::F) {
-        Some(Command::Find)
+    } else if is_key_down(KeyCode::LeftControl)
+        && !is_key_down(KeyCode::LeftShift)
+        && is_key_pressed(KeyCode::F)
+    {
+        Some(Command::FindCaseSensitive)
+    } else if is_key_down(KeyCode::LeftControl)
+        && is_key_down(KeyCode::LeftShift)
+        && is_key_pressed(KeyCode::F)
+    {
+        dbg!("ctrl shift f");
+        Some(Command::FindInCaseSensitive)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageUp) {
         Some(Command::GoTop)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
@@ -120,7 +133,7 @@ pub async fn go_to_line(ctx: &mut Context) -> usize {
         .unwrap_or(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
 }
 
-pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
+pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, usize) {
     ctx.prompt_input = ctx.last_searched_term.clone();
     let _ = input::get_char_pressed();
     loop {
@@ -143,9 +156,18 @@ pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
                     let mut searchidx: usize = 0;
                     let mut searchres: SearchResults = Default::default();
                     for (i, l) in ctx.buffer.buf.iter().enumerate() {
-                        for (idx, _) in l.match_indices(&ctx.prompt_input) {
-                            searchres.push((searchidx, (idx, i)));
-                            searchidx = searchidx.saturating_add(1);
+                        if is_case_sensitive == false {
+                            let s = l.to_ascii_lowercase();
+                            let p = ctx.prompt_input.to_ascii_lowercase();
+                            for (idx, _) in s.match_indices(&p) {
+                                searchres.push((searchidx, (idx, i)));
+                                searchidx = searchidx.saturating_add(1);
+                            }
+                        } else {
+                            for (idx, _) in l.match_indices(&ctx.prompt_input) {
+                                searchres.push((searchidx, (idx, i)));
+                                searchidx = searchidx.saturating_add(1);
+                            }
                         }
                     }
                     ctx.search_res = searchres;
@@ -197,12 +219,24 @@ pub async fn find_in_buf(ctx: &mut Context) -> (usize, usize) {
 }
 
 pub async fn update_state(ctx: &mut Context) {
-    match get_input() {
+    match get_command() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
-        Some(Command::Find) => {
-            ctx.mode = Modes::Find;
-            let search_pos = find_in_buf(ctx).await;
+        Some(Command::Help) => {
+            todo!() // TODO: Create help page
+        }
+        Some(Command::FindInCaseSensitive) => {
+            ctx.mode = Modes::FindCaseInSensitive;
+            let search_pos = find_in_buf(ctx, false).await;
+            ctx.vert_cell_count.0 = search_pos.1;
+            ctx.curr_cursor_pos = (search_pos.0, 0);
+            update_view_buffer(ctx);
+            ctx.prompt_input.clear();
+            ctx.mode = Modes::Edit;
+        }
+        Some(Command::FindCaseSensitive) => {
+            ctx.mode = Modes::FindCaseSensitive;
+            let search_pos = find_in_buf(ctx, true).await;
             ctx.vert_cell_count.0 = search_pos.1;
             ctx.curr_cursor_pos = (search_pos.0, 0);
             update_view_buffer(ctx);

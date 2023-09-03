@@ -114,7 +114,7 @@ pub fn draw_go_to_prompt(ctx: &Context, line: &str) {
     );
 }
 
-pub fn draw_find_prompt(ctx: &Context, line: &str) {
+pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
     let (win_w, win_h) = (screen_width(), screen_height());
     draw_rectangle(
         0f32,
@@ -123,26 +123,49 @@ pub fn draw_find_prompt(ctx: &Context, line: &str) {
         ctx.font_size as f32,
         color_u8!(255, 0, 0, 255),
     );
-    draw_text_ex(
-        &format!(
-            " Find: {}  [{}/{}]",
-            line,
-            if !ctx.search_res.is_empty() {
-                ctx.last_searched_idx + 1
-            } else {
-                ctx.last_searched_idx
+    if is_case_sensitive {
+        draw_text_ex(
+            &format!(
+                " Find(CaseSensitive): {}  [{}/{}]",
+                line,
+                if !ctx.search_res.is_empty() {
+                    ctx.last_searched_idx + 1
+                } else {
+                    ctx.last_searched_idx
+                },
+                ctx.search_res.len()
+            ),
+            0f32,
+            win_h - ctx.font_size as f32 + 14f32,
+            TextParams {
+                font_size: ctx.font_size,
+                color: color_u8!(0, 0, 0, 255),
+                font: ctx.font,
+                ..Default::default()
             },
-            ctx.search_res.len()
-        ),
-        0f32,
-        win_h - ctx.font_size as f32 + 14f32,
-        TextParams {
-            font_size: ctx.font_size,
-            color: color_u8!(0, 0, 0, 255),
-            font: ctx.font,
-            ..Default::default()
-        },
-    );
+        );
+    } else {
+        draw_text_ex(
+            &format!(
+                " Find(CaseInSensitive): {}  [{}/{}]",
+                line,
+                if !ctx.search_res.is_empty() {
+                    ctx.last_searched_idx + 1
+                } else {
+                    ctx.last_searched_idx
+                },
+                ctx.search_res.len()
+            ),
+            0f32,
+            win_h - ctx.font_size as f32 + 14f32,
+            TextParams {
+                font_size: ctx.font_size,
+                color: color_u8!(0, 0, 0, 255),
+                font: ctx.font,
+                ..Default::default()
+            },
+        );
+    }
 }
 
 pub async fn render(ctx: &Context) {
@@ -182,8 +205,10 @@ pub async fn render(ctx: &Context) {
     draw_cursor_location(ctx);
     if ctx.mode == Modes::GoToLine {
         draw_go_to_prompt(ctx, &ctx.prompt_input);
-    } else if ctx.mode == Modes::Find {
-        draw_find_prompt(ctx, &ctx.prompt_input);
+    } else if ctx.mode == Modes::FindCaseSensitive {
+        draw_find_prompt(ctx, &ctx.prompt_input, true);
+    } else if ctx.mode == Modes::FindCaseInSensitive {
+        draw_find_prompt(ctx, &ctx.prompt_input, false);
     }
     next_frame().await
 }
