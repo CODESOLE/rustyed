@@ -4,6 +4,7 @@ use macroquad::{
         is_key_down, is_key_pressed, is_mouse_button_pressed, is_quit_requested, KeyCode,
         MouseButton,
     },
+    window::screen_height,
 };
 
 use crate::{
@@ -55,7 +56,6 @@ pub fn get_command() -> Option<Command> {
         && is_key_down(KeyCode::LeftShift)
         && is_key_pressed(KeyCode::F)
     {
-        dbg!("ctrl shift f");
         Some(Command::FindInCaseSensitive)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageUp) {
         Some(Command::GoTop)
@@ -100,8 +100,7 @@ pub fn get_command() -> Option<Command> {
 }
 
 fn update_view_buffer(ctx: &mut Context) {
-    ctx.vert_cell_count.1 =
-        macroquad::window::screen_height() as usize / ctx.font_size as usize + 1;
+    ctx.vert_cell_count.1 = screen_height() as usize / ctx.font_size as usize + 1;
     from_str_to_cells(ctx);
 }
 
@@ -202,9 +201,10 @@ pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, 
                         .1;
                     ctx.vert_cell_count.0 = pos.1;
                     ctx.curr_cursor_pos = (pos.0, 0);
-                    update_view_buffer(ctx);
                 }
                 ctx.is_search_changed = false;
+                update_view_buffer(ctx);
+                from_str_to_cells(ctx);
             }
             if let Some(c) = input::get_char_pressed() {
                 if c.is_ascii_graphic() || c.is_ascii_whitespace() {
@@ -218,12 +218,25 @@ pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, 
     }
 }
 
+pub async fn show_help_page(ctx: &mut Context) {
+    loop {
+        if let Some(k) = input::get_last_key_pressed() {
+            if k == KeyCode::Escape {
+                ctx.show_help = false;
+                return;
+            }
+        }
+        render(ctx).await;
+    }
+}
+
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
         Some(Command::Exit) => ctx.is_exit = true,
         Some(Command::Save) => ctx.buffer.write_to_file(),
         Some(Command::Help) => {
-            todo!() // TODO: Create help page
+            ctx.show_help = true;
+            show_help_page(ctx).await;
         }
         Some(Command::FindInCaseSensitive) => {
             ctx.mode = Modes::FindCaseInSensitive;

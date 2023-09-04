@@ -2,6 +2,44 @@ use macroquad::{prelude::*, window};
 
 use crate::core::{Context, Modes};
 
+pub const HELP_PAGE: &str = "
+
+        HELP PAGE
+
+ESC ==> Exit from help page, search mode, gotoline mode.
+
+PageUp/Down ==> PageUp/PageDown.
+
+CTRL - PageUp/Down ==> goto top/bottom of document.
+
+CTRL - G ==> Go To Line mode.
+
+CTRL - H ==> Open help page.
+
+CTRL - F ==> Search document in case sensitive mode.
+
+CTRL - Shift - F ==> Search document in case insensitive mode.
+
+Home ==> Go to begining of line.
+
+End ==> Go to end of line.
+
+CTRL - S ==> Save document.
+
+Left/Right Arrow ==> Move cursor by one char left/right.
+
+CTRL - Left/Right Arrow ==> Move cursor by word.
+
+Up/Down Arrow ==> Move cursor Up/Down.
+
+Delete ==> Delete char under cursor.
+
+Backspace ==> Remove previous char.
+
+CTRL - C/X/V ==> Copy/Paste/Cut operation.
+
+CTRL - Z/Y ==> Undo/Redo.";
+
 #[derive(Default, Debug)]
 pub struct Cell {
     pub c: char,
@@ -168,6 +206,32 @@ pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
     }
 }
 
+fn highlight_search_result(ctx: &Context) {
+    if !ctx.search_res.is_empty() {
+        for (i, c) in ctx.cells.iter().enumerate() {
+            for &(_, sr) in ctx.search_res.iter() {
+                if c.pos.0 == sr.0
+                    && c.pos.1 == (sr.1 % ctx.vert_cell_count.1)
+                    && (ctx.vert_cell_count.0..(ctx.vert_cell_count.0 + ctx.vert_cell_count.1))
+                        .contains(&sr.1)
+                {
+                    let search_term_len = ctx.last_searched_term.len();
+                    let cell_slice = &ctx.cells[i..(i + search_term_len)];
+                    let mut w = 0f32;
+                    cell_slice.iter().for_each(|c| w += c.bound.0);
+                    draw_rectangle(
+                        c.coord.0,
+                        c.coord.1 - 14f32,
+                        w,
+                        ctx.font_size as f32,
+                        color_u8!(0, 255, 0, 10),
+                    );
+                }
+            }
+        }
+    }
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
     let cursor_to_render = ctx
@@ -207,8 +271,33 @@ pub async fn render(ctx: &Context) {
         draw_go_to_prompt(ctx, &ctx.prompt_input);
     } else if ctx.mode == Modes::FindCaseSensitive {
         draw_find_prompt(ctx, &ctx.prompt_input, true);
+        highlight_search_result(ctx);
     } else if ctx.mode == Modes::FindCaseInSensitive {
         draw_find_prompt(ctx, &ctx.prompt_input, false);
+        highlight_search_result(ctx);
+    }
+    if ctx.show_help {
+        render_help_page(ctx);
     }
     next_frame().await
+}
+
+fn render_help_page(ctx: &Context) {
+    let (win_w, win_h) = (screen_width(), screen_height());
+    draw_rectangle(0f32, 0f32, win_w, win_h, color_u8!(0, 0, 0, 255));
+    let mut y = 0f32;
+    HELP_PAGE.lines().enumerate().for_each(|(i, l)| {
+        y = (i * ctx.font_size as usize) as f32;
+        draw_text_ex(
+            l,
+            0f32,
+            y + 14f32,
+            TextParams {
+                font_size: ctx.font_size,
+                color: color_u8!(255, 255, 255, 255),
+                font: ctx.font,
+                ..Default::default()
+            },
+        );
+    });
 }

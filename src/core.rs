@@ -36,6 +36,7 @@ pub struct Context {
     pub is_search_changed: bool,
     pub last_searched_idx: usize,
     pub last_searched_term: String,
+    pub show_help: bool,
 }
 
 impl Default for Context {
@@ -60,6 +61,7 @@ impl Default for Context {
             is_search_changed: false,
             last_searched_idx: Default::default(),
             last_searched_term: String::new(),
+            show_help: false,
         }
     }
 }
@@ -99,6 +101,7 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     ctx.is_search_changed = false;
     ctx.last_searched_idx = Default::default();
     ctx.last_searched_term = Default::default();
+    ctx.show_help = false;
 
     from_str_to_cells(ctx);
 }
