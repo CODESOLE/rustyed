@@ -2,6 +2,7 @@ use std::{
     fs::OpenOptions,
     io::{Read, Write},
     path::PathBuf,
+    str::FromStr,
 };
 
 #[derive(Debug, Default)]
@@ -36,7 +37,12 @@ impl Buffer {
             .open(p)
             .expect("Error occured while opening or creating file!");
         match file.read_to_string(&mut buf) {
-            Ok(read_bytes) => println!("{read_bytes} Bytes read from file!"),
+            Ok(read_bytes) => {
+                println!("{read_bytes} Bytes read from file!");
+                if read_bytes == 0 {
+                    self.buf.push(String::from_str("\n").unwrap());
+                }
+            }
             Err(e) => println!("Error occured while opening and reading file with error code: {e}"),
         }
         for s in buf.lines() {
