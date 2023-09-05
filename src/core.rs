@@ -37,6 +37,7 @@ pub struct Context {
     pub last_searched_idx: usize,
     pub last_searched_term: String,
     pub show_help: bool,
+    pub is_font_monospaced: Option<f32>,
 }
 
 impl Default for Context {
@@ -62,7 +63,19 @@ impl Default for Context {
             last_searched_idx: Default::default(),
             last_searched_term: String::new(),
             show_help: false,
+            is_font_monospaced: None,
         }
+    }
+}
+
+fn is_font_monospaced(ctx: &Context) -> Option<f32> {
+    let w = measure_text("m", Some(ctx.font), ctx.font_size, 1f32).width;
+    if w == measure_text("i", Some(ctx.font), ctx.font_size, 1f32).width {
+        println!("Monospace Font Detected!");
+        Some(w)
+    } else {
+        println!("Non-Monospace Font Detected!");
+        None
     }
 }
 
@@ -102,6 +115,7 @@ pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
     ctx.last_searched_idx = Default::default();
     ctx.last_searched_term = Default::default();
     ctx.show_help = false;
+    ctx.is_font_monospaced = is_font_monospaced(ctx);
 
     from_str_to_cells(ctx);
 }

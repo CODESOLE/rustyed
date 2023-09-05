@@ -63,15 +63,28 @@ pub fn from_str_to_cells(ctx: &mut Context) {
         .iter_mut()
         .enumerate()
     {
-        for (j, ch) in s.chars().enumerate() {
-            let letter_size = measure_text(&ch.to_string(), Some(ctx.font), ctx.font_size, 1.0f32);
-            x_coor = measure_text(&s[..j], Some(ctx.font), ctx.font_size, 1f32).width;
-            cells.push(Cell {
-                c: ch,
-                coord: (x_coor, y_coor + 14f32),
-                bound: (letter_size.width, ctx.font_size as f32),
-                pos: (j, i),
-            });
+        if let Some(w) = ctx.is_font_monospaced {
+            for (j, ch) in s.chars().enumerate() {
+                x_coor = j as f32 * w;
+                cells.push(Cell {
+                    c: ch,
+                    coord: (x_coor, y_coor + 14f32),
+                    bound: (w, ctx.font_size as f32),
+                    pos: (j, i),
+                });
+            }
+        } else {
+            for (j, ch) in s.chars().enumerate() {
+                let letter_size =
+                    measure_text(&ch.to_string(), Some(ctx.font), ctx.font_size, 1.0f32);
+                x_coor = measure_text(&s[..j], Some(ctx.font), ctx.font_size, 1f32).width;
+                cells.push(Cell {
+                    c: ch,
+                    coord: (x_coor, y_coor + 14f32),
+                    bound: (letter_size.width, ctx.font_size as f32),
+                    pos: (j, i),
+                });
+            }
         }
         y_coor = (i + 1) as f32 * ctx.font_size as f32;
     }
