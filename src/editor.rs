@@ -204,7 +204,6 @@ pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, 
                 }
                 ctx.is_search_changed = false;
                 update_view_buffer(ctx);
-                from_str_to_cells(ctx);
             }
             if let Some(c) = input::get_char_pressed() {
                 if c.is_ascii_graphic() || c.is_ascii_whitespace() {
