@@ -68,7 +68,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                 x_coor = j as f32 * w;
                 cells.push(Cell {
                     c: ch,
-                    coord: (x_coor, y_coor + 14f32),
+                    coord: (x_coor, y_coor),
                     bound: (w, ctx.font_size as f32),
                     pos: (j, i),
                 });
@@ -80,7 +80,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                 x_coor = measure_text(&s[..j], Some(ctx.font), ctx.font_size, 1f32).width;
                 cells.push(Cell {
                     c: ch,
-                    coord: (x_coor, y_coor + 14f32),
+                    coord: (x_coor, y_coor),
                     bound: (letter_size.width, ctx.font_size as f32),
                     pos: (j, i),
                 });
@@ -122,7 +122,7 @@ fn draw_cursor_location(ctx: &Context) {
     draw_text_ex(
         loc_str.as_str(),
         x,
-        14f32,
+        12f32,
         TextParams {
             font_size: ctx.font_size,
             color: color_u8!(0, 0, 0, 255),
@@ -136,7 +136,7 @@ fn draw_cursor_line(ctx: &Context, cursor: &Cell) {
     let width = macroquad::window::screen_width();
     draw_rectangle(
         0f32,
-        cursor.coord.1 - 12f32,
+        cursor.coord.1,
         width,
         ctx.font_size as f32,
         color_u8!(255, 255, 255, 10),
@@ -155,7 +155,7 @@ pub fn draw_go_to_prompt(ctx: &Context, line: &str) {
     draw_text_ex(
         &format!(" Line Number: {}", line),
         0f32,
-        win_h - ctx.font_size as f32 + 14f32,
+        win_h - ctx.font_size as f32,
         TextParams {
             font_size: ctx.font_size,
             color: color_u8!(0, 0, 0, 255),
@@ -187,7 +187,7 @@ pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
                 ctx.search_res.len()
             ),
             0f32,
-            win_h - ctx.font_size as f32 + 14f32,
+            win_h - ctx.font_size as f32 + 12f32,
             TextParams {
                 font_size: ctx.font_size,
                 color: color_u8!(0, 0, 0, 255),
@@ -208,7 +208,7 @@ pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
                 ctx.search_res.len()
             ),
             0f32,
-            win_h - ctx.font_size as f32 + 14f32,
+            win_h - ctx.font_size as f32 + 12f32,
             TextParams {
                 font_size: ctx.font_size,
                 color: color_u8!(0, 0, 0, 255),
@@ -216,32 +216,6 @@ pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
                 ..Default::default()
             },
         );
-    }
-}
-
-fn highlight_search_result(ctx: &Context) {
-    if !ctx.search_res.is_empty() {
-        for (i, c) in ctx.cells.iter().enumerate() {
-            for &(_, sr) in ctx.search_res.iter() {
-                if c.pos.0 == sr.0
-                    && c.pos.1 == (sr.1 % ctx.vert_cell_count.1)
-                    && (ctx.vert_cell_count.0..(ctx.vert_cell_count.0 + ctx.vert_cell_count.1))
-                        .contains(&sr.1)
-                {
-                    let search_term_len = ctx.last_searched_term.len();
-                    let cell_slice = &ctx.cells[i..(i + search_term_len)];
-                    let mut w = 0f32;
-                    cell_slice.iter().for_each(|c| w += c.bound.0);
-                    draw_rectangle(
-                        c.coord.0,
-                        c.coord.1 - 14f32,
-                        w,
-                        ctx.font_size as f32,
-                        color_u8!(0, 255, 0, 10),
-                    );
-                }
-            }
-        }
     }
 }
 
@@ -263,7 +237,7 @@ pub async fn render(ctx: &Context) {
         draw_text_ex(
             &cell.c.to_string(),
             cell.coord.0,
-            cell.coord.1,
+            cell.coord.1 + 12f32,
             TextParams {
                 font_size: ctx.font_size,
                 color: ctx.font_color,
@@ -274,7 +248,7 @@ pub async fn render(ctx: &Context) {
     }
     draw_rectangle(
         cursor_to_render.coord.0,
-        cursor_to_render.coord.1 - 12f32,
+        cursor_to_render.coord.1,
         cursor_to_render.bound.0,
         cursor_to_render.bound.1,
         ctx.cursor_col,
@@ -284,10 +258,8 @@ pub async fn render(ctx: &Context) {
         draw_go_to_prompt(ctx, &ctx.prompt_input);
     } else if ctx.mode == Modes::FindCaseSensitive {
         draw_find_prompt(ctx, &ctx.prompt_input, true);
-        highlight_search_result(ctx);
     } else if ctx.mode == Modes::FindCaseInSensitive {
         draw_find_prompt(ctx, &ctx.prompt_input, false);
-        highlight_search_result(ctx);
     }
     if ctx.show_help {
         render_help_page(ctx);
@@ -304,7 +276,7 @@ fn render_help_page(ctx: &Context) {
         draw_text_ex(
             l,
             0f32,
-            y + 14f32,
+            y,
             TextParams {
                 font_size: ctx.font_size,
                 color: color_u8!(255, 255, 255, 255),
