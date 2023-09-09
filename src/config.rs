@@ -44,7 +44,6 @@ pub fn color_ascii_to_4u8(s: &str) -> Color {
     Color::from_rgba(col[0], col[1], col[2], col[3])
 }
 
-// TODO: Issue on reading config file, not read properly!
 pub fn parse_config(conf_path: &Path) -> Result<Config, Box<dyn Error>> {
     let mut file_content = String::new();
     let mut file = std::fs::File::open(conf_path)?;
