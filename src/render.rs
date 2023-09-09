@@ -104,7 +104,8 @@ pub fn from_cells_to_string(cells: &Vec<Cell>) -> Vec<String> {
 
 fn draw_cursor_location(ctx: &Context) {
     let loc_str = format!(
-        "{}:{}:{}",
+        "{} {}:{}:{}",
+        if ctx.is_file_changed { "[+] " } else { "" },
         ctx.active_buf.display(),
         ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1,
         ctx.curr_cursor_pos.0 + 1
@@ -219,6 +220,28 @@ pub fn draw_find_prompt(ctx: &Context, line: &str, is_case_sensitive: bool) {
     }
 }
 
+pub fn draw_unsaved_prompt(ctx: &Context) {
+    let (win_w, win_h) = (screen_width(), screen_height());
+    draw_rectangle(
+        0f32,
+        win_h - ctx.font_size as f32,
+        win_w,
+        ctx.font_size as f32,
+        color_u8!(255, 0, 0, 255),
+    );
+    draw_text_ex(
+        "File is modified! Are you sure to quit?[Press 'y' to exit, press 'n' to not exit!]",
+        0f32,
+        win_h - ctx.font_size as f32 + 12f32,
+        TextParams {
+            font_size: ctx.font_size,
+            color: color_u8!(0, 0, 0, 255),
+            font: ctx.font,
+            ..Default::default()
+        },
+    );
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
     let cursor_to_render = ctx
@@ -260,8 +283,9 @@ pub async fn render(ctx: &Context) {
         draw_find_prompt(ctx, &ctx.prompt_input, true);
     } else if ctx.mode == Modes::FindCaseInSensitive {
         draw_find_prompt(ctx, &ctx.prompt_input, false);
-    }
-    if ctx.show_help {
+    } else if ctx.mode == Modes::ModifiedPrompt {
+        draw_unsaved_prompt(ctx);
+    } else if ctx.mode == Modes::ShowHelp {
         render_help_page(ctx);
     }
     next_frame().await

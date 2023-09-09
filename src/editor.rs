@@ -30,6 +30,7 @@ pub enum Command {
     MoveUp,
     MoveDown,
     Delete,
+    Backspace,
     WordMoveLeft,
     WordMoveRight,
     MouseLeftClick,
@@ -61,7 +62,9 @@ pub fn get_command() -> Option<Command> {
         Some(Command::GoTop)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
         Some(Command::GoBottom)
-    } else if is_key_pressed(KeyCode::Escape) || is_quit_requested() {
+    } else if (is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Q))
+        || is_quit_requested()
+    {
         Some(Command::Exit)
     } else if is_key_pressed(KeyCode::PageUp) {
         Some(Command::PageUp)
@@ -83,9 +86,11 @@ pub fn get_command() -> Option<Command> {
         Some(Command::MoveRight)
     } else if is_key_pressed(KeyCode::Delete) {
         Some(Command::Delete)
-    } else {
+    } else if is_key_pressed(KeyCode::Backspace) {
+        Some(Command::Backspace)
+    } else if !is_key_down(KeyCode::LeftControl) && input::get_last_key_pressed().is_some() {
         if let Some(c) = input::get_char_pressed() {
-            if !c.is_alphanumeric() {
+            if !(c.is_alphanumeric() || c == ' ' || c == '\t') {
                 return None;
             }
             if is_key_down(KeyCode::LeftShift) {
@@ -96,6 +101,8 @@ pub fn get_command() -> Option<Command> {
         } else {
             None
         }
+    } else {
+        None
     }
 }
 
@@ -221,7 +228,20 @@ pub async fn show_help_page(ctx: &mut Context) {
     loop {
         if let Some(k) = input::get_last_key_pressed() {
             if k == KeyCode::Escape {
-                ctx.show_help = false;
+                return;
+            }
+        }
+        render(ctx).await;
+    }
+}
+
+pub async fn prompt_unsaved_changes(ctx: &mut Context) {
+    loop {
+        if let Some(c) = input::get_char_pressed() {
+            if c == 'y' {
+                ctx.is_exit = true;
+                return;
+            } else if c == 'n' {
                 return;
             }
         }
@@ -231,11 +251,23 @@ pub async fn show_help_page(ctx: &mut Context) {
 
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
-        Some(Command::Exit) => ctx.is_exit = true,
-        Some(Command::Save) => ctx.buffer.write_to_file(),
+        Some(Command::Exit) => {
+            if !ctx.is_file_changed {
+                ctx.is_exit = true
+            } else {
+                ctx.mode = Modes::ModifiedPrompt;
+                prompt_unsaved_changes(ctx).await;
+                ctx.mode = Modes::Edit;
+            }
+        }
+        Some(Command::Save) => {
+            ctx.buffer.write_to_file();
+            ctx.is_file_changed = false;
+        }
         Some(Command::Help) => {
-            ctx.show_help = true;
+            ctx.mode = Modes::ShowHelp;
             show_help_page(ctx).await;
+            ctx.mode = Modes::Edit;
         }
         Some(Command::FindInCaseSensitive) => {
             ctx.mode = Modes::FindCaseInSensitive;
@@ -268,13 +300,25 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::MouseLeftClick) => {
             let (x, y) = input::mouse_position();
             let cell_y = (y / ctx.font_size as f32).floor() as usize;
-            let cell = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.coord.0 < x && x < (c.coord.0 + c.bound.0));
+            let cell = ctx
+                .cells
+                .iter()
+                .filter(|c| c.pos.1 == cell_y)
+                .find(|c| c.coord.0 < x && x < (c.coord.0 + c.bound.0));
             if let Some(c) = cell {
                 ctx.curr_cursor_pos.0 = c.pos.0;
                 ctx.curr_cursor_pos.1 = cell_y;
             } else {
-                let cel = ctx.cells.iter().filter(|c| c.pos.1 == cell_y).find(|c| c.c == '\n');
-                if cel.is_some() { ctx.curr_cursor_pos = (cel.unwrap().pos.0, cell_y); } else { ctx.curr_cursor_pos = (0, 0); }
+                let cel = ctx
+                    .cells
+                    .iter()
+                    .filter(|c| c.pos.1 == cell_y)
+                    .find(|c| c.c == '\n');
+                if cel.is_some() {
+                    ctx.curr_cursor_pos = (cel.unwrap().pos.0, cell_y);
+                } else {
+                    ctx.curr_cursor_pos = (0, 0);
+                }
             }
         }
         Some(Command::GoTop) => {
@@ -438,19 +482,30 @@ pub async fn update_state(ctx: &mut Context) {
             }
             dbg!(ctx.curr_cursor_pos);
         }
-        // TODO: apply all movements the view_buffer
-        Some(Command::Delete) => ()/*ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-            if ctx.curr_cursor_pos.1 == i {
-                s.remove(ctx.curr_cursor_pos.0);
-            }
-        })*/,
-        Some(Command::CharPressed(_c)) => ()/*{
+        // TODO: implement Enter, Backspace, Delete key
+        Some(Command::Backspace) => {
+            ctx.is_file_changed = true;
+            update_view_buffer(ctx);
+        }
+        Some(Command::Delete) => {
+            ctx.is_file_changed = true;
             ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
                 if ctx.curr_cursor_pos.1 == i {
+                    s.remove(ctx.curr_cursor_pos.0);
+                }
+            });
+            update_view_buffer(ctx);
+        }
+        Some(Command::CharPressed(c)) => {
+            ctx.is_file_changed = true;
+            ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
+                if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
                     s.insert(ctx.curr_cursor_pos.0, c);
                 }
-            })
-        }*/,
+            });
+            ctx.curr_cursor_pos.0 += 1;
+            update_view_buffer(ctx);
+        }
         None => (),
     }
 }

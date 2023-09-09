@@ -12,6 +12,8 @@ pub enum Modes {
     FindCaseSensitive,
     FindCaseInSensitive,
     Edit,
+    ModifiedPrompt,
+    ShowHelp,
 }
 
 pub type SearchResults = Vec<(usize, (usize, usize))>;
@@ -36,8 +38,8 @@ pub struct Context {
     pub is_search_changed: bool,
     pub last_searched_idx: usize,
     pub last_searched_term: String,
-    pub show_help: bool,
     pub is_font_monospaced: Option<f32>,
+    pub is_file_changed: bool,
 }
 
 impl Default for Context {
@@ -62,8 +64,8 @@ impl Default for Context {
             is_search_changed: false,
             last_searched_idx: Default::default(),
             last_searched_term: String::new(),
-            show_help: false,
             is_font_monospaced: None,
+            is_file_changed: false,
         }
     }
 }
@@ -114,8 +116,8 @@ pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
     ctx.is_search_changed = false;
     ctx.last_searched_idx = Default::default();
     ctx.last_searched_term = Default::default();
-    ctx.show_help = false;
     ctx.is_font_monospaced = is_font_monospaced(ctx);
+    ctx.is_file_changed = false;
 
     from_str_to_cells(ctx);
 }
