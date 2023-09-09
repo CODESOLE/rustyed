@@ -4,7 +4,7 @@ use crate::{
     render::{from_str_to_cells, Cell},
 };
 use macroquad::prelude::*;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 #[derive(PartialEq)]
 pub enum Modes {
@@ -79,7 +79,7 @@ fn is_font_monospaced(ctx: &Context) -> Option<f32> {
     }
 }
 
-pub async fn init(ctx: &mut Context, conf_path: &str, file: &PathBuf) {
+pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
     let conf = parse_config(conf_path).unwrap_or_default();
     if let Some(fnt) = &conf.font {
         ctx.font = load_ttf_font(fnt).await.unwrap_or_default();

@@ -1,9 +1,10 @@
-extern crate ini;
-use ini::Ini;
 use macroquad::prelude::Color;
+use std::{collections::HashMap, error::Error, io::Read, path::Path};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct ConfigParseError;
+
+#[derive(Debug)]
 pub struct Config {
     pub bg_col: Option<String>,
     pub font_col: Option<String>,
@@ -43,43 +44,40 @@ pub fn color_ascii_to_4u8(s: &str) -> Color {
     Color::from_rgba(col[0], col[1], col[2], col[3])
 }
 
-pub fn parse_config(conf_path: &str) -> Result<Config, ini::Error> {
-    let conf = Ini::load_from_file(conf_path)?;
+// TODO: Issue on reading config file, not read properly!
+pub fn parse_config(conf_path: &Path) -> Result<Config, Box<dyn Error>> {
+    let mut file_content = String::new();
+    let mut file = std::fs::File::open(conf_path)?;
+    let _ = file.read_to_string(&mut file_content);
+    let mut pairs = HashMap::new();
+    let mut config = Config::default();
 
-    let editor = conf
-        .section(Some("Editor"))
-        .expect("'Editor' section could not be found!");
+    for l in file_content.lines() {
+        let s: &str;
+        if let Some(idx) = l.find(';') {
+            s = &l[..idx];
+        } else {
+            s = l;
+        }
+        if s.trim().is_empty() {
+            continue;
+        }
+        if let Some((k, v)) = s
+            .trim()
+            .split_once('=')
+            .and_then(|(k, v)| Some((k.trim().to_owned(), v.trim().to_owned())))
+        {
+            pairs.insert(k, v);
+        } else {
+            return Err("Parse Error!".into());
+        }
+    }
+    config.font = pairs.get("font").cloned().take();
+    config.font_col = pairs.get("font_col").cloned().take();
+    config.font_size = pairs.get("font_size").cloned().take();
+    config.bg_col = pairs.get("bg_col").cloned().take();
+    config.cursor_col = pairs.get("cursor_col").cloned().take();
+    config.cursor_line = pairs.get("cursor_line").cloned().take();
 
-    let fontt = editor
-        .get("font")
-        .expect("'font' property could not be found!");
-    let fontsize = editor
-        .get("font_size")
-        .expect("'font_size' property could not be found!");
-
-    let style = conf
-        .section(Some("Style"))
-        .expect("'Style' section could not be found!");
-
-    let bgcol = style
-        .get("bg_col")
-        .expect("'bg_col' property could not be found!");
-    let fontcol = style
-        .get("font_col")
-        .expect("'font_col' property could not be found!");
-    let cur_col = style
-        .get("cursor_col")
-        .expect("'cursor_col' property could not be found!");
-    let cur_ln = style
-        .get("cursor_line")
-        .expect("'cursor_line' property could not be found!");
-
-    Ok(Config {
-        bg_col: Some(bgcol.to_string()),
-        font_col: Some(fontcol.to_string()),
-        font_size: Some(fontsize.to_string()),
-        font: Some(fontt.to_string()),
-        cursor_col: Some(cur_col.to_string()),
-        cursor_line: Some(cur_ln.to_string()),
-    })
+    Ok(config)
 }
