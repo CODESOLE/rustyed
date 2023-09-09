@@ -261,7 +261,9 @@ pub async fn update_state(ctx: &mut Context) {
             }
         }
         Some(Command::Save) => {
-            ctx.buffer.write_to_file();
+            if ctx.is_file_changed {
+                ctx.buffer.write_to_file();
+            }
             ctx.is_file_changed = false;
         }
         Some(Command::Help) => {
