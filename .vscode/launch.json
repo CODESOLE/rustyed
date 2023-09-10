@@ -5,9 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/rustyed.exe",
+            "args": ["Cargo.lock"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "(Linux) Launch",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'rustyed'",
             "cargo": {
                 "args": [
                     "build",
@@ -22,25 +33,6 @@
             "args": [
                 "Cargo.lock"
             ],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'rustyed'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=rustyed",
-                    "--package=rustyed"
-                ],
-                "filter": {
-                    "name": "rustyed",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
             "cwd": "${workspaceFolder}"
         }
     ]
