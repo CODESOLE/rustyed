@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use macroquad::{
     input,
     prelude::{
@@ -30,11 +32,13 @@ pub enum Command {
     MoveUp,
     MoveDown,
     Delete,
+    Enter,
     Backspace,
     WordMoveLeft,
     WordMoveRight,
     MouseLeftClick,
     CharPressed(char),
+    DeleteWord,
 }
 
 pub fn get_command() -> Option<Command> {
@@ -42,6 +46,8 @@ pub fn get_command() -> Option<Command> {
         Some(Command::Save)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Left) {
         Some(Command::WordMoveLeft)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::W) {
+        Some(Command::DeleteWord)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::H) {
         Some(Command::Help)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Right) {
@@ -68,6 +74,8 @@ pub fn get_command() -> Option<Command> {
         Some(Command::Exit)
     } else if is_key_pressed(KeyCode::PageUp) {
         Some(Command::PageUp)
+    } else if is_key_pressed(KeyCode::Enter) {
+        Some(Command::Enter)
     } else if is_mouse_button_pressed(MouseButton::Left) {
         Some(Command::MouseLeftClick)
     } else if is_key_pressed(KeyCode::PageDown) {
@@ -254,8 +262,162 @@ pub async fn prompt_unsaved_changes(ctx: &mut Context) {
     }
 }
 
+fn move_cursor_up(ctx: &mut Context) {
+    if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
+        return ();
+    }
+    if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.buf.get(ctx.vert_cell_count.0 - 1).is_some() {
+        update_view_buffer(ctx);
+        ctx.vert_cell_count.0 -= 1;
+        ctx.curr_cursor_pos = (0, 0);
+        from_str_to_cells(ctx);
+        return ();
+    }
+    update_view_buffer(ctx);
+    let view_buffer = from_cells_to_string(&ctx.cells);
+    if ctx
+        .cells
+        .iter()
+        .find(|c| (c.pos.1 == ctx.curr_cursor_pos.1 - 1) && (c.pos.0 == ctx.curr_cursor_pos.0))
+        .is_some()
+    {
+        ctx.curr_cursor_pos.1 -= 1;
+    } else {
+        ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 - 1]
+            .char_indices()
+            .last()
+            .unwrap()
+            .0;
+        ctx.curr_cursor_pos.1 -= 1;
+    }
+    dbg!(ctx.curr_cursor_pos);
+}
+
+fn move_cursor_down(ctx: &mut Context) {
+    if ctx.vert_cell_count.0 == ctx.buffer.buf.len() - 1
+        || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.buf.len() - 1)
+    {
+        return ();
+    }
+    if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
+        && ctx
+            .buffer
+            .buf
+            .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
+            .is_some()
+    {
+        update_view_buffer(ctx);
+        ctx.vert_cell_count.0 += 1;
+        ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
+        from_str_to_cells(ctx);
+        return ();
+    }
+    update_view_buffer(ctx);
+    let view_buffer = from_cells_to_string(&ctx.cells);
+    if ctx
+        .cells
+        .iter()
+        .find(|c| (c.pos.1 == ctx.curr_cursor_pos.1 + 1) && (c.pos.0 == ctx.curr_cursor_pos.0))
+        .is_some()
+    {
+        ctx.curr_cursor_pos.1 += 1
+    } else {
+        if view_buffer.get(ctx.curr_cursor_pos.1 + 1).is_none() {
+            return;
+        }
+        ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 + 1]
+            .char_indices()
+            .last()
+            .unwrap()
+            .0;
+        ctx.curr_cursor_pos.1 += 1
+    }
+    dbg!(ctx.curr_cursor_pos);
+}
+
+fn move_cursor_left(ctx: &mut Context) {
+    if ctx.curr_cursor_pos.0 == 0 {
+        ()
+    } else {
+        ctx.curr_cursor_pos.0 -= 1
+    }
+    dbg!(ctx.curr_cursor_pos);
+}
+
+fn move_cursor_right(ctx: &mut Context) {
+    let view_buffer = from_cells_to_string(&ctx.cells);
+    if view_buffer[ctx.curr_cursor_pos.1]
+        .chars()
+        .nth(ctx.curr_cursor_pos.0)
+        .unwrap()
+        == '\n'
+    {
+        ()
+    } else {
+        ctx.curr_cursor_pos.0 += 1
+    }
+    dbg!(ctx.curr_cursor_pos);
+}
+
+fn move_cursor_left_word(ctx: &mut Context) {
+    let view_buffer = from_cells_to_string(&ctx.cells);
+    let row = &view_buffer[ctx.curr_cursor_pos.1];
+    let sub = &row[..ctx.curr_cursor_pos.0];
+    if let Some(space_indx) = sub.rfind(' ') {
+        ctx.curr_cursor_pos.0 -= ctx.curr_cursor_pos.0 - space_indx;
+    }
+}
+
+fn move_cursor_right_word(ctx: &mut Context) {
+    let view_buffer = from_cells_to_string(&ctx.cells);
+    let row = &view_buffer[ctx.curr_cursor_pos.1];
+    let sub = &row[ctx.curr_cursor_pos.0..];
+    if let Some(space_indx) = sub.find(' ') {
+        ctx.curr_cursor_pos.0 += space_indx + 1;
+    }
+}
+
+fn delete_word(ctx: &mut Context) {
+    let str =
+        &ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][..ctx.curr_cursor_pos.0];
+    dbg!(str);
+    if let Some(idx) = str.rfind(' ') {
+        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+            .replace_range(idx..ctx.curr_cursor_pos.0, "");
+        ctx.curr_cursor_pos.0 = idx;
+    }
+    update_view_buffer(ctx);
+}
+
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
+        Some(Command::DeleteWord) => {
+            delete_word(ctx);
+        }
+        Some(Command::Enter) => {
+            if ctx.mode == Modes::Edit {
+                ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
+                    if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+                        s.insert(ctx.curr_cursor_pos.0, '\n');
+                    }
+                });
+                let idx = ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                    .find('\n')
+                    .unwrap();
+                let s = String::from_str(
+                    &ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
+                )
+                .unwrap();
+                ctx.buffer
+                    .buf
+                    .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
+                ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                    .replace_range(idx + 1.., "");
+                move_cursor_down(ctx);
+                ctx.curr_cursor_pos.0 = 0;
+                update_view_buffer(ctx);
+            }
+        }
         Some(Command::Exit) => {
             if !ctx.is_file_changed {
                 ctx.is_exit = true
@@ -341,20 +503,10 @@ pub async fn update_state(ctx: &mut Context) {
             from_str_to_cells(ctx);
         }
         Some(Command::WordMoveRight) => {
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            let row = &view_buffer[ctx.curr_cursor_pos.1];
-            let sub = &row[ctx.curr_cursor_pos.0..];
-            if let Some(space_indx) = sub.find(' ') {
-                ctx.curr_cursor_pos.0 += space_indx + 1;
-            }
+            move_cursor_right_word(ctx);
         }
         Some(Command::WordMoveLeft) => {
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            let row = &view_buffer[ctx.curr_cursor_pos.1];
-            let sub = &row[..ctx.curr_cursor_pos.0];
-            if let Some(space_indx) = sub.rfind(' ') {
-                ctx.curr_cursor_pos.0 -= ctx.curr_cursor_pos.0 - space_indx;
-            }
+            move_cursor_left_word(ctx);
         }
         Some(Command::Home) => ctx.curr_cursor_pos.0 = 0,
         Some(Command::End) => {
@@ -392,102 +544,16 @@ pub async fn update_state(ctx: &mut Context) {
             // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::MoveUp) => {
-            if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
-                return ();
-            }
-            if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.buf.get(ctx.vert_cell_count.0 - 1).is_some()
-            {
-                update_view_buffer(ctx);
-                ctx.vert_cell_count.0 -= 1;
-                ctx.curr_cursor_pos = (0, 0);
-                from_str_to_cells(ctx);
-                return ();
-            }
-            update_view_buffer(ctx);
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            if ctx
-                .cells
-                .iter()
-                .find(|c| {
-                    (c.pos.1 == ctx.curr_cursor_pos.1 - 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
-                })
-                .is_some()
-            {
-                ctx.curr_cursor_pos.1 -= 1;
-            } else {
-                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 - 1]
-                    .char_indices()
-                    .last()
-                    .unwrap()
-                    .0;
-                ctx.curr_cursor_pos.1 -= 1;
-            }
-            dbg!(ctx.curr_cursor_pos);
+            move_cursor_up(ctx);
         }
         Some(Command::MoveDown) => {
-            if ctx.vert_cell_count.0 == ctx.buffer.buf.len() - 1
-                || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.buf.len() - 1)
-            {
-                return ();
-            }
-            if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
-                && ctx
-                    .buffer
-                    .buf
-                    .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
-                    .is_some()
-            {
-                update_view_buffer(ctx);
-                ctx.vert_cell_count.0 += 1;
-                ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
-                from_str_to_cells(ctx);
-                return ();
-            }
-            update_view_buffer(ctx);
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            if ctx
-                .cells
-                .iter()
-                .find(|c| {
-                    (c.pos.1 == ctx.curr_cursor_pos.1 + 1) && (c.pos.0 == ctx.curr_cursor_pos.0)
-                })
-                .is_some()
-            {
-                ctx.curr_cursor_pos.1 += 1
-            } else {
-                if view_buffer.get(ctx.curr_cursor_pos.1 + 1).is_none() {
-                    return;
-                }
-                ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1 + 1]
-                    .char_indices()
-                    .last()
-                    .unwrap()
-                    .0;
-                ctx.curr_cursor_pos.1 += 1
-            }
-            dbg!(ctx.curr_cursor_pos);
+            move_cursor_down(ctx);
         }
         Some(Command::MoveLeft) => {
-            if ctx.curr_cursor_pos.0 == 0 {
-                ()
-            } else {
-                ctx.curr_cursor_pos.0 -= 1
-            }
-            dbg!(ctx.curr_cursor_pos);
+            move_cursor_left(ctx);
         }
         Some(Command::MoveRight) => {
-            let view_buffer = from_cells_to_string(&ctx.cells);
-            if view_buffer[ctx.curr_cursor_pos.1]
-                .chars()
-                .nth(ctx.curr_cursor_pos.0)
-                .unwrap()
-                == '\n'
-            {
-                ()
-            } else {
-                ctx.curr_cursor_pos.0 += 1
-            }
-            dbg!(ctx.curr_cursor_pos);
+            move_cursor_right(ctx);
         }
         // TODO: implement Enter, Backspace, Delete key
         Some(Command::Backspace) => {
