@@ -41,6 +41,7 @@ pub struct Context {
     pub is_font_monospaced: Option<f32>,
     pub is_file_changed: bool,
     pub tab_width: u8,
+    pub eof_indicator: bool,
 }
 
 impl Default for Context {
@@ -68,6 +69,7 @@ impl Default for Context {
             is_font_monospaced: None,
             is_file_changed: false,
             tab_width: 2,
+            eof_indicator: false,
         }
     }
 }
@@ -111,7 +113,12 @@ pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
     if let Some(tabw) = conf.tab_width {
         ctx.tab_width = tabw
             .parse::<u8>()
-            .expect("Error happend while parsing font_size property!");
+            .expect("Error happend while parsing tab_width property!");
+    }
+    if let Some(eofindicator) = conf.eof_indicator {
+        ctx.eof_indicator = eofindicator
+            .parse::<bool>()
+            .expect("Error happend while parsing eof_indicator property!");
     }
     ctx.buffer = Buffer::new(file);
     ctx.buffer.read_to_buffer(file);

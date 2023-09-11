@@ -13,6 +13,7 @@ pub struct Config {
     pub cursor_col: Option<String>,
     pub cursor_line: Option<String>,
     pub tab_width: Option<String>,
+    pub eof_indicator: Option<String>,
 }
 
 impl Default for Config {
@@ -25,6 +26,7 @@ impl Default for Config {
             cursor_col: None,
             cursor_line: None,
             tab_width: None,
+            eof_indicator: None,
         }
     }
 }
@@ -80,6 +82,7 @@ pub fn parse_config(conf_path: &Path) -> Result<Config, Box<dyn Error>> {
     config.cursor_col = pairs.get("cursor_col").cloned().take();
     config.cursor_line = pairs.get("cursor_line").cloned().take();
     config.tab_width = pairs.get("tab_width").cloned().take();
+    config.eof_indicator = pairs.get("eof_indicator").cloned().take();
 
     Ok(config)
 }

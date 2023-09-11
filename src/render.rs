@@ -242,8 +242,36 @@ pub fn draw_unsaved_prompt(ctx: &Context) {
     );
 }
 
+fn draw_eof_indicator(ctx: &Context) {
+    if (ctx.vert_cell_count.0 + ctx.vert_cell_count.1) > ctx.buffer.buf.len() {
+        let y = ctx.cells.iter().last().unwrap().coord.1 + ctx.font_size as f32;
+        let w = measure_text("EOF", Some(ctx.font), ctx.font_size, 1f32).width;
+        draw_rectangle(
+            0f32,
+            y,
+            w,
+            ctx.font_size as f32,
+            color_u8!(255, 255, 255, 100),
+        );
+        draw_text_ex(
+            "EOF",
+            0f32,
+            y + 12f32,
+            TextParams {
+                font_size: ctx.font_size,
+                color: color_u8!(0, 0, 0, 255),
+                font: ctx.font,
+                ..Default::default()
+            },
+        );
+    }
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
+    if ctx.eof_indicator {
+        draw_eof_indicator(ctx);
+    }
     let cursor_to_render = ctx
         .cells
         .iter()
