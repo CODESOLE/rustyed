@@ -8,6 +8,12 @@ pub const HELP_PAGE: &str = "
 
 ESC ==> Exit from help page, search mode, gotoline mode.
 
+CTRL - Q ==> Quit from application.
+
+CTRL - S ==> Save document.
+
+CTRL - O ==> Open Document.
+
 PageUp/Down ==> PageUp/PageDown.
 
 CTRL - PageUp/Down ==> goto top/bottom of document.
@@ -24,8 +30,6 @@ Home ==> Go to begining of line.
 
 End ==> Go to end of line.
 
-CTRL - S ==> Save document.
-
 Left/Right Arrow ==> Move cursor by one char left/right.
 
 CTRL - Left/Right Arrow ==> Move cursor by word.
@@ -37,6 +41,8 @@ Delete ==> Delete char under cursor.
 Backspace ==> Remove previous char.
 
 CTRL - C/X/V ==> Copy/Paste/Cut operation.
+
+CTRL - W ==> Delete previous word surround by space.
 
 CTRL - Z/Y ==> Undo/Redo.";
 
