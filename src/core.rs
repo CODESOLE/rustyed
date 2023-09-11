@@ -4,7 +4,7 @@ use crate::{
     render::{from_str_to_cells, Cell},
 };
 use macroquad::prelude::*;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 #[derive(PartialEq)]
 pub enum Modes {
