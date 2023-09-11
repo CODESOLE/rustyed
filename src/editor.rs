@@ -90,7 +90,12 @@ pub fn get_command() -> Option<Command> {
         Some(Command::Backspace)
     } else if !is_key_down(KeyCode::LeftControl) && input::get_last_key_pressed().is_some() {
         if let Some(c) = input::get_char_pressed() {
-            if !(c.is_alphanumeric() || c == ' ' || c == '\t') {
+            if !(c.is_alphanumeric()
+                || c == ' '
+                || c == '\t'
+                || c.is_ascii_punctuation()
+                || c.is_ascii_graphic())
+            {
                 return None;
             }
             if is_key_down(KeyCode::LeftShift) {
@@ -502,10 +507,17 @@ pub async fn update_state(ctx: &mut Context) {
             ctx.is_file_changed = true;
             ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
                 if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                    s.insert(ctx.curr_cursor_pos.0, c);
+                    if c == '\t' {
+                        for _ in 0..ctx.tab_width {
+                            s.insert(ctx.curr_cursor_pos.0, ' ');
+                            ctx.curr_cursor_pos.0 += 1;
+                        }
+                    } else {
+                        s.insert(ctx.curr_cursor_pos.0, c);
+                        ctx.curr_cursor_pos.0 += 1;
+                    }
                 }
             });
-            ctx.curr_cursor_pos.0 += 1;
             update_view_buffer(ctx);
         }
         None => (),

@@ -40,6 +40,7 @@ pub struct Context {
     pub last_searched_term: String,
     pub is_font_monospaced: Option<f32>,
     pub is_file_changed: bool,
+    pub tab_width: u8,
 }
 
 impl Default for Context {
@@ -66,6 +67,7 @@ impl Default for Context {
             last_searched_term: String::new(),
             is_font_monospaced: None,
             is_file_changed: false,
+            tab_width: 2,
         }
     }
 }
@@ -106,18 +108,16 @@ pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
             .parse::<u16>()
             .expect("Error happend while parsing font_size property!");
     }
+    if let Some(tabw) = conf.tab_width {
+        ctx.tab_width = tabw
+            .parse::<u8>()
+            .expect("Error happend while parsing font_size property!");
+    }
     ctx.buffer = Buffer::new(file);
     ctx.buffer.read_to_buffer(file);
     ctx.active_buf = file.to_owned();
     ctx.vert_cell_count = (0, screen_height() as usize / ctx.font_size as usize + 1);
-    ctx.mode = Modes::Edit;
-    ctx.prompt_input = String::new();
-    ctx.search_res = Default::default();
-    ctx.is_search_changed = false;
-    ctx.last_searched_idx = Default::default();
-    ctx.last_searched_term = Default::default();
     ctx.is_font_monospaced = is_font_monospaced(ctx);
-    ctx.is_file_changed = false;
 
     from_str_to_cells(ctx);
 }
