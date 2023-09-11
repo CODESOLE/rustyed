@@ -28,6 +28,7 @@ pub enum Command {
     End,
     Save,
     MoveLeft,
+    OpenDocument,
     MoveRight,
     MoveUp,
     MoveDown,
@@ -54,6 +55,8 @@ pub fn get_command() -> Option<Command> {
         Some(Command::WordMoveRight)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::G) {
         Some(Command::GoToLine)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::O) {
+        Some(Command::OpenDocument)
     } else if is_key_down(KeyCode::LeftControl)
         && !is_key_down(KeyCode::LeftShift)
         && is_key_pressed(KeyCode::F)
@@ -391,6 +394,9 @@ fn delete_word(ctx: &mut Context) {
 
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
+        Some(Command::OpenDocument) => {
+            todo!() // TODO
+        }
         Some(Command::DeleteWord) => {
             delete_word(ctx);
         }
