@@ -112,7 +112,7 @@ fn draw_cursor_location(ctx: &Context) {
     let loc_str = format!(
         "{} {}:{}:{}",
         if ctx.is_file_changed { "[+] " } else { "" },
-        ctx.active_buf.display(),
+        ctx.active_buf.file_name().unwrap().to_str().unwrap(),
         ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1,
         ctx.curr_cursor_pos.0 + 1
     );

@@ -1,4 +1,5 @@
 use editor::update_state;
+use rfd::FileDialog;
 use std::path::PathBuf;
 use std::str::FromStr;
 mod buffer;
@@ -9,7 +10,7 @@ mod render;
 use crate::core::*;
 use crate::render::render;
 
-#[macroquad::main("Rustyed")]
+#[macroquad::main("rustyed")]
 async fn main() {
     let mut ctx: Context = Default::default();
     if std::env::args().count() > 1 {
@@ -19,7 +20,7 @@ async fn main() {
             .expect("Document cannot open!");
         let config = PathBuf::from_str("./rustyed.conf")
             .expect("Config file (rustyed.conf) not found in current directory!");
-        // init
+
         init(&mut ctx, &config, &path).await;
 
         while !ctx.is_exit {
@@ -27,6 +28,23 @@ async fn main() {
             render(&mut ctx).await;
         }
     } else {
-        eprintln!("File to open should be given as a command line argument!");
+        if let Some(file) = FileDialog::new()
+            .add_filter("text", &["txt", "rs"])
+            .add_filter("rust", &["rs", "toml"])
+            .set_directory("/")
+            .pick_file()
+        {
+            let config = PathBuf::from_str("./rustyed.conf")
+                .expect("Config file (rustyed.conf) not found in current directory!");
+
+            init(&mut ctx, &config, &file).await;
+
+            while !ctx.is_exit {
+                update_state(&mut ctx).await;
+                render(&mut ctx).await;
+            }
+        } else {
+            eprintln!("Invalid file selected!");
+        }
     }
 }

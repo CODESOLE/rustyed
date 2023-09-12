@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 macroquad = "0.3.25"
+copypasta = "0.8.2"
+rfd = { default-features = false, features = ['xdg-portal'] }

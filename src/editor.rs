@@ -8,6 +8,7 @@ use macroquad::{
     },
     window::screen_height,
 };
+use rfd::FileDialog;
 
 use crate::{
     core::{Context, Modes, SearchResults},
@@ -395,7 +396,19 @@ fn delete_word(ctx: &mut Context) {
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
         Some(Command::OpenDocument) => {
-            todo!() // TODO
+            if let Some(file) = FileDialog::new()
+                .add_filter("text", &["txt", "rs"])
+                .add_filter("rust", &["rs", "toml"])
+                .set_directory("/")
+                .pick_file()
+            {
+                ctx.buffer.buf.clear();
+                ctx.buffer.read_to_buffer(&file);
+                ctx.active_buf = file.to_owned();
+                update_view_buffer(ctx);
+            } else {
+                eprintln!("Invalid file selected!");
+            }
         }
         Some(Command::DeleteWord) => {
             delete_word(ctx);
