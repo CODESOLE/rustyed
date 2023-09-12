@@ -574,18 +574,43 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::MoveRight) => {
             move_cursor_right(ctx);
         }
-        // TODO: implement Enter, Backspace, Delete key
         Some(Command::Backspace) => {
+            // TODO: implement backspace
             ctx.is_file_changed = true;
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
             ctx.is_file_changed = true;
-            ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-                if ctx.curr_cursor_pos.1 == i {
-                    s.remove(ctx.curr_cursor_pos.0);
+            if (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == ctx.buffer.buf.len() - 1)
+                && ctx.cells.iter().last().unwrap().pos.0 == ctx.curr_cursor_pos.0
+            {
+                ()
+            } else {
+                let mut str = String::new();
+                if let Some(s) = ctx
+                    .buffer
+                    .buf
+                    .get(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1)
+                {
+                    str = s.clone();
                 }
-            });
+                if let Some((_, s)) = ctx.buffer.buf.iter_mut().enumerate().find(|&(i, ref s)| {
+                    (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
+                        && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
+                }) {
+                    s.remove(ctx.curr_cursor_pos.0);
+                    s.push_str(str.as_str());
+                    ctx.buffer
+                        .buf
+                        .remove(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
+                } else {
+                    ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
+                        if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+                            s.remove(ctx.curr_cursor_pos.0);
+                        }
+                    });
+                }
+            }
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
