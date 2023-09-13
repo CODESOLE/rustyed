@@ -568,7 +568,6 @@ pub async fn update_state(ctx: &mut Context) {
             move_cursor_right(ctx);
         }
         Some(Command::Backspace) => {
-            // TODO: implement backspace
             if ctx.vert_cell_count.0 == 0
                 && ctx.curr_cursor_pos.0 == 0
                 && (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) == 0
