@@ -62,8 +62,6 @@ pub fn from_str_to_cells(ctx: &mut Context) {
         ctx.vert_cell_count.0 + ctx.vert_cell_count.1,
         ctx.buffer.buf.len(),
     );
-    dbg!(ctx.vert_cell_count.0);
-    dbg!(end_rng);
 
     for (i, s) in ctx.buffer.buf[ctx.vert_cell_count.0..end_rng]
         .iter_mut()
@@ -236,7 +234,7 @@ pub fn draw_unsaved_prompt(ctx: &Context) {
         color_u8!(255, 0, 0, 255),
     );
     draw_text_ex(
-        "File is modified! Are you sure to quit?[Press 'y' to exit, press 'n' to not exit!]",
+        "File is modified! Are you sure to quit?[Press 'y' to exit without saving, press 'n' to not exit!]",
         0f32,
         win_h - ctx.font_size as f32 + 12f32,
         TextParams {

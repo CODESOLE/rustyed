@@ -294,7 +294,6 @@ fn move_cursor_up(ctx: &mut Context) {
             .0;
         ctx.curr_cursor_pos.1 -= 1;
     }
-    dbg!(ctx.curr_cursor_pos);
 }
 
 fn move_cursor_down(ctx: &mut Context) {
@@ -336,7 +335,6 @@ fn move_cursor_down(ctx: &mut Context) {
             .0;
         ctx.curr_cursor_pos.1 += 1
     }
-    dbg!(ctx.curr_cursor_pos);
 }
 
 fn move_cursor_left(ctx: &mut Context) {
@@ -345,7 +343,6 @@ fn move_cursor_left(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 -= 1
     }
-    dbg!(ctx.curr_cursor_pos);
 }
 
 fn move_cursor_right(ctx: &mut Context) {
@@ -360,7 +357,6 @@ fn move_cursor_right(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 += 1
     }
-    dbg!(ctx.curr_cursor_pos);
 }
 
 fn move_cursor_left_word(ctx: &mut Context) {
@@ -384,7 +380,6 @@ fn move_cursor_right_word(ctx: &mut Context) {
 fn delete_word(ctx: &mut Context) {
     let str =
         &ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][..ctx.curr_cursor_pos.0];
-    dbg!(str);
     if let Some(idx) = str.rfind(' ') {
         ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
             .replace_range(idx..ctx.curr_cursor_pos.0, "");
@@ -547,7 +542,6 @@ pub async fn update_state(ctx: &mut Context) {
 
             ctx.curr_cursor_pos = (0, 0);
             from_str_to_cells(ctx);
-            // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::PageDown) => {
             update_view_buffer(ctx);
@@ -560,7 +554,6 @@ pub async fn update_state(ctx: &mut Context) {
 
             ctx.curr_cursor_pos = (0, 0);
             from_str_to_cells(ctx);
-            // dbg!(from_cells_to_string(&ctx.cells));
         }
         Some(Command::MoveUp) => {
             move_cursor_up(ctx);
@@ -576,16 +569,54 @@ pub async fn update_state(ctx: &mut Context) {
         }
         Some(Command::Backspace) => {
             // TODO: implement backspace
-            ctx.is_file_changed = true;
+            if ctx.vert_cell_count.0 == 0
+                && ctx.curr_cursor_pos.0 == 0
+                && (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) == 0
+            {
+                ()
+            } else {
+                ctx.is_file_changed = true;
+                let mut str1 = String::new();
+                let mut pos = 0usize;
+                if (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) != 0
+                    && ctx.curr_cursor_pos.0 == 0
+                {
+                    pos =
+                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].len() - 1;
+                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
+                    str1 =
+                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].clone();
+                }
+
+                if let Some((i, _)) = ctx.buffer.buf.iter().enumerate().find(|&(i, _)| {
+                    (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
+                        && (ctx.curr_cursor_pos.0 == 0)
+                }) {
+                    let str2 =
+                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
+                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
+                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
+                        format!("{}{}", str1, str2);
+                    ctx.buffer.buf.remove(i - 1);
+                    ctx.curr_cursor_pos = (pos, ctx.curr_cursor_pos.1 - 1);
+                } else {
+                    ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
+                        if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+                            s.remove(ctx.curr_cursor_pos.0 - 1);
+                            ctx.curr_cursor_pos.0 -= 1;
+                        }
+                    });
+                }
+            }
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
-            ctx.is_file_changed = true;
             if (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == ctx.buffer.buf.len() - 1)
                 && ctx.cells.iter().last().unwrap().pos.0 == ctx.curr_cursor_pos.0
             {
                 ()
             } else {
+                ctx.is_file_changed = true;
                 let mut str = String::new();
                 if let Some(s) = ctx
                     .buffer
