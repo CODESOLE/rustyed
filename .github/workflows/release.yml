@@ -36,6 +36,8 @@ jobs:
         with:
           # (required)
           bin: rustyed
+          include: rustyed.conf,fonts
+          asset: rustyed.conf
           target: ${{ matrix.target }}
           # (optional) On which platform to distribute the `.tar.gz` file.
           # [default value: unix]
