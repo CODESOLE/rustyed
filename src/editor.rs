@@ -406,9 +406,11 @@ pub async fn update_state(ctx: &mut Context) {
             }
         }
         Some(Command::DeleteWord) => {
+            ctx.is_file_changed = true;
             delete_word(ctx);
         }
         Some(Command::Enter) => {
+            ctx.is_file_changed = true;
             if ctx.mode == Modes::Edit {
                 ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
                     if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
@@ -505,16 +507,14 @@ pub async fn update_state(ctx: &mut Context) {
             }
         }
         Some(Command::GoTop) => {
-            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = 0;
             ctx.curr_cursor_pos = (0, 0);
-            from_str_to_cells(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::GoBottom) => {
-            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = ctx.buffer.buf.len() - 1;
             ctx.curr_cursor_pos = (0, 0);
-            from_str_to_cells(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::WordMoveRight) => {
             move_cursor_right_word(ctx);
@@ -532,7 +532,6 @@ pub async fn update_state(ctx: &mut Context) {
                 .0;
         }
         Some(Command::PageUp) => {
-            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = std::cmp::max(
                 ctx.vert_cell_count
                     .0
@@ -541,10 +540,9 @@ pub async fn update_state(ctx: &mut Context) {
             );
 
             ctx.curr_cursor_pos = (0, 0);
-            from_str_to_cells(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::PageDown) => {
-            update_view_buffer(ctx);
             ctx.vert_cell_count.0 = std::cmp::min(
                 ctx.vert_cell_count
                     .0
@@ -553,7 +551,7 @@ pub async fn update_state(ctx: &mut Context) {
             ) - 1;
 
             ctx.curr_cursor_pos = (0, 0);
-            from_str_to_cells(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::MoveUp) => {
             move_cursor_up(ctx);

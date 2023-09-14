@@ -1326,6 +1326,7 @@ dependencies = [
  "copypasta",
  "macroquad",
  "rfd",
+ "undo",
 ]
 
 [[package]]
@@ -1589,6 +1590,12 @@ dependencies = [
  "tempfile",
  "winapi",
 ]
+
+[[package]]
+name = "undo"
+version = "0.49.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1291b72a2c0e02a928a87691841648fbfbab121f05ed6e4ff58083f4ee98d22c"
 
 [[package]]
 name = "unicode-bidi"
