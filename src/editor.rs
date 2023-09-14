@@ -19,6 +19,8 @@ pub enum Command {
     Exit,
     PageUp,
     PageDown,
+    ShiftPageUp,
+    ShiftPageDown,
     GoTop,
     GoBottom,
     GoToLine,
@@ -72,6 +74,10 @@ pub fn get_command() -> Option<Command> {
         Some(Command::GoTop)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::PageDown) {
         Some(Command::GoBottom)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::PageUp) {
+        Some(Command::ShiftPageUp)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::PageDown) {
+        Some(Command::ShiftPageDown)
     } else if (is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Q))
         || is_quit_requested()
     {
@@ -390,6 +396,8 @@ fn delete_word(ctx: &mut Context) {
 
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
+        Some(Command::ShiftPageUp) => {}
+        Some(Command::ShiftPageDown) => {}
         Some(Command::OpenDocument) => {
             if let Some(file) = FileDialog::new()
                 .add_filter("text", &["txt", "rs"])
