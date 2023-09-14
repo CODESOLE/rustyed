@@ -1,7 +1,4 @@
 # rustyed
-<!-- Very simple, primal text editor written in Rust, mostly for practising.
-Very limited; ASCII only, not optimized, just for simple - quick editing. -->
-
 <img src="assets/rustyed_icon64.png" style="float: left;margin-right: 10px;margin-bottom: 10px"> 
 <p>
 <p> Very simple, primal text editor written in Rust, mostly for practising.<br>
