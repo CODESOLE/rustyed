@@ -1,4 +1,6 @@
 use editor::update_state;
+use macroquad::miniquad::conf::Icon;
+use macroquad::window::Conf;
 use rfd::FileDialog;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -10,7 +12,20 @@ mod render;
 use crate::core::*;
 use crate::render::render;
 
-#[macroquad::main("rustyed")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "rustyed".to_owned(),
+        window_resizable: true,
+        icon: Some(Icon {
+            small: include_bytes!("../assets/rustyed_icon16.rgba").to_owned(),
+            medium: include_bytes!("../assets/rustyed_icon32.rgba").to_owned(),
+            big: include_bytes!("../assets/rustyed_icon64.rgba").to_owned(),
+        }),
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let mut ctx: Context = Default::default();
     if std::env::args().count() > 1 {
