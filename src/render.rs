@@ -16,7 +16,7 @@ CTRL - O ==> Open Document.
 
 PageUp/Down ==> PageUp/PageDown.
 
-CTRL - PageUp/Down ==> goto top/bottom of document.
+CTRL - PageUp/Down ==> Goto top/bottom of document.
 
 CTRL - G ==> Go To Line mode.
 
@@ -40,7 +40,7 @@ Delete ==> Delete char under cursor.
 
 Backspace ==> Remove previous char.
 
-CTRL - C/X/V ==> Copy/Paste/Cut operation.
+CTRL - C/X/V ==> Copy/Cut/Paste operation.
 
 CTRL - W ==> Delete previous word surround by space.
 
