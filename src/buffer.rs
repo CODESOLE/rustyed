@@ -8,14 +8,16 @@ use std::{
 #[derive(Debug, Default)]
 pub struct Buffer {
     pub name: String,
-    pub buf: Vec<String>,
+    pub buf: String,
+    pub vec_str: Vec<String>,
 }
 
 impl Buffer {
     pub fn new(bufname: &PathBuf) -> Self {
         Buffer {
             name: bufname.display().to_string(),
-            buf: Vec::<String>::new(),
+            buf: String::new(),
+            vec_str: Vec::<String>::new(),
         }
     }
     pub fn write_to_file(&self) {
@@ -25,7 +27,7 @@ impl Buffer {
             .truncate(true)
             .open(&self.name)
             .expect("Error occured while opening or creating file!");
-        file.write_all(&self.buf.concat().as_bytes())
+        file.write_all(&self.vec_str.concat().as_bytes())
             .expect("Error occured while writing to file!");
     }
     pub fn read_to_buffer(&mut self, p: &PathBuf) {
@@ -40,15 +42,20 @@ impl Buffer {
             Ok(read_bytes) => {
                 println!("{read_bytes} Bytes read from file!");
                 if read_bytes == 0 {
-                    self.buf.push(String::from_str("\n").unwrap());
+                    self.vec_str.push(String::from_str("\n").unwrap());
+                    self.buf.push('\n');
                 }
             }
-            Err(e) => println!("Error occured while opening and reading file with error code: {e}"),
+            Err(e) => {
+                eprintln!("Error occured while opening and reading file with error code: {e}")
+            }
         }
+        buf = buf.replace("\r\n", "\n");
         for s in buf.lines() {
             let mut ss = s.to_string();
             ss.push('\n');
-            self.buf.push(ss);
+            self.vec_str.push(ss);
         }
+        self.buf = buf;
     }
 }

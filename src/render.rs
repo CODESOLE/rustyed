@@ -60,37 +60,52 @@ pub fn from_str_to_cells(ctx: &mut Context) {
     let mut y_coor = 0f32;
     let end_rng = std::cmp::min(
         ctx.vert_cell_count.0 + ctx.vert_cell_count.1,
-        ctx.buffer.buf.len(),
+        ctx.buffer.buf.lines().count(),
     );
 
-    for (i, s) in ctx.buffer.buf[ctx.vert_cell_count.0..end_rng]
-        .iter_mut()
-        .enumerate()
-    {
+    ctx.buffer.vec_str.clear();
+    for s in ctx.buffer.buf.lines() {
+        let mut ss = s.to_string();
+        ss.push('\n');
+        ctx.buffer.vec_str.push(ss);
+    }
+
+    let mut prev_lf_idx = 0usize;
+    for (line_idx, (lf_idx, _)) in ctx.buffer.buf.match_indices('\n').enumerate() {
+        if !(ctx.vert_cell_count.0..end_rng).contains(&line_idx) {
+            continue;
+        }
+        let line;
+        if line_idx == 0 {
+            line = &ctx.buffer.buf[0..=lf_idx];
+        } else {
+            line = &ctx.buffer.buf[prev_lf_idx + 1..=lf_idx];
+        }
         if let Some(w) = ctx.is_font_monospaced {
-            for (j, ch) in s.chars().enumerate() {
+            for (j, ch) in line.chars().enumerate() {
                 x_coor = j as f32 * w;
                 cells.push(Cell {
                     c: ch,
                     coord: (x_coor, y_coor),
                     bound: (w, ctx.font_size as f32),
-                    pos: (j, i),
+                    pos: (j, line_idx),
                 });
             }
         } else {
-            for (j, ch) in s.chars().enumerate() {
+            for (j, ch) in line.chars().enumerate() {
                 let letter_size =
                     measure_text(&ch.to_string(), Some(ctx.font), ctx.font_size, 1.0f32);
-                x_coor = measure_text(&s[..j], Some(ctx.font), ctx.font_size, 1f32).width;
+                x_coor = measure_text(&line[..j], Some(ctx.font), ctx.font_size, 1f32).width;
                 cells.push(Cell {
                     c: ch,
                     coord: (x_coor, y_coor),
                     bound: (letter_size.width, ctx.font_size as f32),
-                    pos: (j, i),
+                    pos: (j, line_idx),
                 });
             }
         }
-        y_coor = (i + 1) as f32 * ctx.font_size as f32;
+        y_coor = (line_idx + 1) as f32 * ctx.font_size as f32;
+        prev_lf_idx = lf_idx;
     }
     ctx.cells = cells;
 }
@@ -247,7 +262,7 @@ pub fn draw_unsaved_prompt(ctx: &Context) {
 }
 
 fn draw_eof_indicator(ctx: &Context) {
-    if (ctx.vert_cell_count.0 + ctx.vert_cell_count.1) > ctx.buffer.buf.len() {
+    if (ctx.vert_cell_count.0 + ctx.vert_cell_count.1) > ctx.buffer.buf.lines().count() {
         let y = ctx.cells.iter().last().unwrap().coord.1 + ctx.font_size as f32;
         let w = measure_text("EOF", Some(ctx.font), ctx.font_size, 1f32).width;
         draw_rectangle(

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{process::id, str::FromStr};
 
 use macroquad::{
     input,
@@ -35,12 +35,14 @@ pub enum Command {
     MoveRight,
     MoveUp,
     MoveDown,
-    Delete,
-    Enter,
-    Backspace,
     WordMoveLeft,
     WordMoveRight,
     MouseLeftClick,
+    Undo,
+    Redo,
+    Delete,
+    Enter,
+    Backspace,
     CharPressed(char),
     DeleteWord,
 }
@@ -48,6 +50,10 @@ pub enum Command {
 pub fn get_command() -> Option<Command> {
     if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::S) {
         Some(Command::Save)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Z) {
+        Some(Command::Undo)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Y) {
+        Some(Command::Redo)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Left) {
         Some(Command::WordMoveLeft)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::W) {
@@ -184,7 +190,7 @@ pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, 
                 if ctx.is_search_changed {
                     let mut searchidx: usize = 0;
                     let mut searchres: SearchResults = Default::default();
-                    for (i, l) in ctx.buffer.buf.iter().enumerate() {
+                    for (i, l) in ctx.buffer.vec_str.iter().enumerate() {
                         if is_case_sensitive == false {
                             let s = l.to_ascii_lowercase();
                             let p = ctx.prompt_input.to_ascii_lowercase();
@@ -276,7 +282,7 @@ fn move_cursor_up(ctx: &mut Context) {
     if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
         return ();
     }
-    if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.buf.get(ctx.vert_cell_count.0 - 1).is_some() {
+    if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.vec_str.get(ctx.vert_cell_count.0 - 1).is_some() {
         update_view_buffer(ctx);
         ctx.vert_cell_count.0 -= 1;
         ctx.curr_cursor_pos = (0, 0);
@@ -303,15 +309,15 @@ fn move_cursor_up(ctx: &mut Context) {
 }
 
 fn move_cursor_down(ctx: &mut Context) {
-    if ctx.vert_cell_count.0 == ctx.buffer.buf.len() - 1
-        || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.buf.len() - 1)
+    if ctx.vert_cell_count.0 == ctx.buffer.vec_str.len() - 1
+        || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.vec_str.len() - 1)
     {
         return ();
     }
     if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
         && ctx
             .buffer
-            .buf
+            .vec_str
             .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
             .is_some()
     {
@@ -349,6 +355,7 @@ fn move_cursor_left(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 -= 1
     }
+    dbg!(get_internal_buf_offset(ctx));
 }
 
 fn move_cursor_right(ctx: &mut Context) {
@@ -363,6 +370,7 @@ fn move_cursor_right(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 += 1
     }
+    dbg!(get_internal_buf_offset(ctx));
 }
 
 fn move_cursor_left_word(ctx: &mut Context) {
@@ -384,20 +392,63 @@ fn move_cursor_right_word(ctx: &mut Context) {
 }
 
 fn delete_word(ctx: &mut Context) {
-    let str =
-        &ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][..ctx.curr_cursor_pos.0];
+    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    let inline_offset = inter_buf_off.get_inline_offset();
+    let str;
+    if let Some(lfidx) = inter_buf_off.0 {
+        str = &ctx.buffer.buf[lfidx + 1..inter_buf_off.1];
+    } else {
+        str = &ctx.buffer.buf[..inter_buf_off.1];
+    }
+    dbg!(str);
     if let Some(idx) = str.rfind(' ') {
-        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-            .replace_range(idx..ctx.curr_cursor_pos.0, "");
+        // println!("{}..{}", inter_buf_off.1 - idx, inter_buf_off.1);
+        ctx.buffer
+            .buf
+            .replace_range(inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1, "");
         ctx.curr_cursor_pos.0 = idx;
     }
+    dbg!(&ctx.buffer.buf);
     update_view_buffer(ctx);
+}
+
+#[derive(Debug)]
+pub struct InternalBufOffset(Option<usize>, usize);
+impl InternalBufOffset {
+    pub fn get_inline_offset(&self) -> usize {
+        if self.0.is_some() {
+            self.1 - self.0.unwrap() - 1
+        } else {
+            self.1
+        }
+    }
+}
+
+fn get_internal_buf_offset(ctx: &Context) -> Option<InternalBufOffset> {
+    if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
+        return Some(InternalBufOffset(None, ctx.curr_cursor_pos.0));
+    }
+    ctx.buffer
+        .buf
+        .match_indices('\n')
+        .nth((ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1).saturating_sub(1))
+        .map(|(index, _)| InternalBufOffset(Some(index), index + ctx.curr_cursor_pos.0 + 1))
 }
 
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
-        Some(Command::ShiftPageUp) => {}
-        Some(Command::ShiftPageDown) => {}
+        Some(Command::ShiftPageUp) => {
+            todo!() // TODO
+        }
+        Some(Command::ShiftPageDown) => {
+            todo!() // TODO
+        }
+        Some(Command::Undo) => {
+            todo!() // TODO
+        }
+        Some(Command::Redo) => {
+            todo!() // TODO
+        }
         Some(Command::OpenDocument) => {
             if let Some(file) = FileDialog::new()
                 .add_filter("text", &["txt", "rs"])
@@ -405,41 +456,12 @@ pub async fn update_state(ctx: &mut Context) {
                 .set_directory("/")
                 .pick_file()
             {
-                ctx.buffer.buf.clear();
+                ctx.buffer.vec_str.clear();
                 ctx.buffer.read_to_buffer(&file);
                 ctx.active_buf = file.to_owned();
                 update_view_buffer(ctx);
             } else {
                 eprintln!("Invalid file selected!");
-            }
-        }
-        Some(Command::DeleteWord) => {
-            ctx.is_file_changed = true;
-            delete_word(ctx);
-        }
-        Some(Command::Enter) => {
-            ctx.is_file_changed = true;
-            if ctx.mode == Modes::Edit {
-                ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-                    if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                        s.insert(ctx.curr_cursor_pos.0, '\n');
-                    }
-                });
-                let idx = ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                    .find('\n')
-                    .unwrap();
-                let s = String::from_str(
-                    &ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
-                )
-                .unwrap();
-                ctx.buffer
-                    .buf
-                    .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
-                ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                    .replace_range(idx + 1.., "");
-                move_cursor_down(ctx);
-                ctx.curr_cursor_pos.0 = 0;
-                update_view_buffer(ctx);
             }
         }
         Some(Command::Exit) => {
@@ -483,7 +505,7 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::GoToLine) => {
             ctx.mode = Modes::GoToLine;
             let line = go_to_line(ctx).await;
-            let line = std::cmp::max(std::cmp::min(ctx.buffer.buf.len(), line), 1);
+            let line = std::cmp::max(std::cmp::min(ctx.buffer.vec_str.len(), line), 1);
             ctx.vert_cell_count.0 = line - 1;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
@@ -520,7 +542,7 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::GoBottom) => {
-            ctx.vert_cell_count.0 = ctx.buffer.buf.len() - 1;
+            ctx.vert_cell_count.0 = ctx.buffer.vec_str.len() - 1;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
         }
@@ -555,7 +577,7 @@ pub async fn update_state(ctx: &mut Context) {
                 ctx.vert_cell_count
                     .0
                     .saturating_add(ctx.vert_cell_count.1 as usize),
-                ctx.buffer.buf.len(),
+                ctx.buffer.vec_str.len(),
             ) - 1;
 
             ctx.curr_cursor_pos = (0, 0);
@@ -573,6 +595,39 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::MoveRight) => {
             move_cursor_right(ctx);
         }
+        Some(Command::DeleteWord) => {
+            ctx.is_file_changed = true;
+            delete_word(ctx);
+        }
+        Some(Command::Enter) => {
+            ctx.is_file_changed = true;
+            if ctx.mode == Modes::Edit {
+                ctx.buffer
+                    .vec_str
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, s)| {
+                        if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+                            s.insert(ctx.curr_cursor_pos.0, '\n');
+                        }
+                    });
+                let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                    .find('\n')
+                    .unwrap();
+                let s = String::from_str(
+                    &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
+                )
+                .unwrap();
+                ctx.buffer
+                    .vec_str
+                    .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
+                ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                    .replace_range(idx + 1.., "");
+                move_cursor_down(ctx);
+                ctx.curr_cursor_pos.0 = 0;
+                update_view_buffer(ctx);
+            }
+        }
         Some(Command::Backspace) => {
             if ctx.vert_cell_count.0 == 0
                 && ctx.curr_cursor_pos.0 == 0
@@ -586,37 +641,42 @@ pub async fn update_state(ctx: &mut Context) {
                 if (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) != 0
                     && ctx.curr_cursor_pos.0 == 0
                 {
-                    pos =
-                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].len() - 1;
-                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
-                    str1 =
-                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].clone();
+                    pos = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
+                        .len()
+                        - 1;
+                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
+                    str1 = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
+                        .clone();
                 }
 
-                if let Some((i, _)) = ctx.buffer.buf.iter().enumerate().find(|&(i, _)| {
+                if let Some((i, _)) = ctx.buffer.vec_str.iter().enumerate().find(|&(i, _)| {
                     (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
                         && (ctx.curr_cursor_pos.0 == 0)
                 }) {
                     let str2 =
-                        ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
-                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
-                    ctx.buffer.buf[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
+                        ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
+                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
+                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
                         format!("{}{}", str1, str2);
-                    ctx.buffer.buf.remove(i - 1);
+                    ctx.buffer.vec_str.remove(i - 1);
                     ctx.curr_cursor_pos = (pos, ctx.curr_cursor_pos.1 - 1);
                 } else {
-                    ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-                        if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-                            s.remove(ctx.curr_cursor_pos.0 - 1);
-                            ctx.curr_cursor_pos.0 -= 1;
-                        }
-                    });
+                    ctx.buffer
+                        .vec_str
+                        .iter_mut()
+                        .enumerate()
+                        .for_each(|(i, s)| {
+                            if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+                                s.remove(ctx.curr_cursor_pos.0 - 1);
+                                ctx.curr_cursor_pos.0 -= 1;
+                            }
+                        });
                 }
             }
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
-            if (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == ctx.buffer.buf.len() - 1)
+            if (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == ctx.buffer.vec_str.len() - 1)
                 && ctx.cells.iter().last().unwrap().pos.0 == ctx.curr_cursor_pos.0
             {
                 ()
@@ -625,45 +685,59 @@ pub async fn update_state(ctx: &mut Context) {
                 let mut str = String::new();
                 if let Some(s) = ctx
                     .buffer
-                    .buf
+                    .vec_str
                     .get(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1)
                 {
                     str = s.clone();
                 }
-                if let Some((_, s)) = ctx.buffer.buf.iter_mut().enumerate().find(|&(i, ref s)| {
-                    (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
-                        && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
-                }) {
+                if let Some((_, s)) =
+                    ctx.buffer
+                        .vec_str
+                        .iter_mut()
+                        .enumerate()
+                        .find(|&(i, ref s)| {
+                            (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
+                                && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
+                        })
+                {
                     s.remove(ctx.curr_cursor_pos.0);
                     s.push_str(str.as_str());
                     ctx.buffer
-                        .buf
+                        .vec_str
                         .remove(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
                 } else {
-                    ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-                        if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-                            s.remove(ctx.curr_cursor_pos.0);
-                        }
-                    });
+                    ctx.buffer
+                        .vec_str
+                        .iter_mut()
+                        .enumerate()
+                        .for_each(|(i, s)| {
+                            if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+                                s.remove(ctx.curr_cursor_pos.0);
+                            }
+                        });
                 }
             }
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
             ctx.is_file_changed = true;
-            ctx.buffer.buf.iter_mut().enumerate().for_each(|(i, s)| {
-                if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                    if c == '\t' {
-                        for _ in 0..ctx.tab_width {
-                            s.insert(ctx.curr_cursor_pos.0, ' ');
+            ctx.buffer
+                .vec_str
+                .iter_mut()
+                .enumerate()
+                .for_each(|(i, s)| {
+                    if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+                        if c == '\t' {
+                            for _ in 0..ctx.tab_width {
+                                s.insert(ctx.curr_cursor_pos.0, ' ');
+                                ctx.curr_cursor_pos.0 += 1;
+                            }
+                        } else {
+                            s.insert(ctx.curr_cursor_pos.0, c);
                             ctx.curr_cursor_pos.0 += 1;
                         }
-                    } else {
-                        s.insert(ctx.curr_cursor_pos.0, c);
-                        ctx.curr_cursor_pos.0 += 1;
                     }
-                }
-            });
+                });
             update_view_buffer(ctx);
         }
         None => (),
