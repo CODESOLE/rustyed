@@ -188,7 +188,7 @@ pub async fn find_in_buf(ctx: &mut Context, is_case_sensitive: bool) -> (usize, 
                 if ctx.is_search_changed {
                     let mut searchidx: usize = 0;
                     let mut searchres: SearchResults = Default::default();
-                    for (i, l) in ctx.buffer.vec_str.iter().enumerate() {
+                    for (i, l) in ctx.buffer.buf.lines().enumerate() {
                         if is_case_sensitive == false {
                             let s = l.to_ascii_lowercase();
                             let p = ctx.prompt_input.to_ascii_lowercase();
@@ -511,7 +511,7 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::GoToLine) => {
             ctx.mode = Modes::GoToLine;
             let line = go_to_line(ctx).await;
-            let line = std::cmp::max(std::cmp::min(ctx.buffer.vec_str.len(), line), 1);
+            let line = std::cmp::max(std::cmp::min(ctx.buffer.buf.lines().count(), line), 1);
             ctx.vert_cell_count.0 = line - 1;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
