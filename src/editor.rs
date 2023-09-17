@@ -38,6 +38,9 @@ pub enum Command {
     MouseLeftClick,
     Undo,
     Redo,
+    Copy,
+    Paste,
+    Cut,
     Delete,
     Enter,
     Backspace,
@@ -48,6 +51,12 @@ pub enum Command {
 pub fn get_command() -> Option<Command> {
     if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::S) {
         Some(Command::Save)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::C) {
+        Some(Command::Copy)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::X) {
+        Some(Command::Cut)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::V) {
+        Some(Command::Paste)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Z) {
         Some(Command::Undo)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Y) {
@@ -453,6 +462,15 @@ pub async fn update_state(ctx: &mut Context) {
             todo!() // TODO
         }
         Some(Command::Redo) => {
+            todo!() // TODO
+        }
+        Some(Command::Copy) => {
+            todo!() // TODO
+        }
+        Some(Command::Cut) => {
+            todo!() // TODO
+        }
+        Some(Command::Paste) => {
             todo!() // TODO
         }
         Some(Command::OpenDocument) => {
