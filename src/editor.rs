@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use macroquad::{
     input,
     prelude::{
@@ -370,7 +368,6 @@ fn move_cursor_right(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 += 1
     }
-    dbg!(get_internal_buf_offset(ctx));
 }
 
 fn move_cursor_left_word(ctx: &mut Context) {
@@ -400,15 +397,12 @@ fn delete_word(ctx: &mut Context) {
     } else {
         str = &ctx.buffer.buf[..inter_buf_off.1];
     }
-    dbg!(str);
     if let Some(idx) = str.rfind(' ') {
-        // println!("{}..{}", inter_buf_off.1 - idx, inter_buf_off.1);
         ctx.buffer
             .buf
             .replace_range(inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1, "");
         ctx.curr_cursor_pos.0 = idx;
     }
-    dbg!(&ctx.buffer.buf);
     update_view_buffer(ctx);
 }
 
@@ -433,6 +427,18 @@ fn get_internal_buf_offset(ctx: &Context) -> Option<InternalBufOffset> {
         .match_indices('\n')
         .nth((ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1).saturating_sub(1))
         .map(|(index, _)| InternalBufOffset(Some(index), index + ctx.curr_cursor_pos.0 + 1))
+}
+
+fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
+    let mut offset = 0usize;
+    for i in (0..off).rev() {
+        if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
+            offset += 1;
+        } else {
+            return offset;
+        }
+    }
+    offset
 }
 
 pub async fn update_state(ctx: &mut Context) {
@@ -602,77 +608,96 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::Enter) => {
             ctx.is_file_changed = true;
             if ctx.mode == Modes::Edit {
-                ctx.buffer
-                    .vec_str
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(i, s)| {
-                        if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                            s.insert(ctx.curr_cursor_pos.0, '\n');
-                        }
-                    });
-                let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                    .find('\n')
-                    .unwrap();
-                let s = String::from_str(
-                    &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
-                )
-                .unwrap();
-                ctx.buffer
-                    .vec_str
-                    .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
-                ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                    .replace_range(idx + 1.., "");
+                let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+                ctx.buffer.buf.insert(inter_buf_off.1, '\n');
                 move_cursor_down(ctx);
                 ctx.curr_cursor_pos.0 = 0;
+
+                // ctx.buffer
+                //     .vec_str
+                //     .iter_mut()
+                //     .enumerate()
+                //     .for_each(|(i, s)| {
+                //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+                //             s.insert(ctx.curr_cursor_pos.0, '\n');
+                //         }
+                //     });
+                // let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                //     .find('\n')
+                //     .unwrap();
+                // let s = String::from_str(
+                //     &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
+                // )
+                // .unwrap();
+                // ctx.buffer
+                //     .vec_str
+                //     .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
+                // ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+                //     .replace_range(idx + 1.., "");
+                // move_cursor_down(ctx);
+                // ctx.curr_cursor_pos.0 = 0;
                 update_view_buffer(ctx);
             }
         }
         Some(Command::Backspace) => {
-            if ctx.vert_cell_count.0 == 0
-                && ctx.curr_cursor_pos.0 == 0
-                && (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) == 0
-            {
+            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            let inline_off = inter_buf_off.get_inline_offset();
+            if inter_buf_off.1 == 0 {
                 ()
             } else {
+                let inline_offset = get_ch_off_to_inline_off(ctx, inter_buf_off.1 - 1);
                 ctx.is_file_changed = true;
-                let mut str1 = String::new();
-                let mut pos = 0usize;
-                if (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) != 0
-                    && ctx.curr_cursor_pos.0 == 0
-                {
-                    pos = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
-                        .len()
-                        - 1;
-                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
-                    str1 = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
-                        .clone();
-                }
-
-                if let Some((i, _)) = ctx.buffer.vec_str.iter().enumerate().find(|&(i, _)| {
-                    (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
-                        && (ctx.curr_cursor_pos.0 == 0)
-                }) {
-                    let str2 =
-                        ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
-                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
-                    ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
-                        format!("{}{}", str1, str2);
-                    ctx.buffer.vec_str.remove(i - 1);
-                    ctx.curr_cursor_pos = (pos, ctx.curr_cursor_pos.1 - 1);
+                ctx.buffer.buf.remove(inter_buf_off.1 - 1);
+                if inline_off != 0 {
+                    ctx.curr_cursor_pos.0 -= 1;
                 } else {
-                    ctx.buffer
-                        .vec_str
-                        .iter_mut()
-                        .enumerate()
-                        .for_each(|(i, s)| {
-                            if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-                                s.remove(ctx.curr_cursor_pos.0 - 1);
-                                ctx.curr_cursor_pos.0 -= 1;
-                            }
-                        });
+                    ctx.curr_cursor_pos = (inline_offset, ctx.curr_cursor_pos.1 - 1);
                 }
             }
+            // if ctx.vert_cell_count.0 == 0
+            //     && ctx.curr_cursor_pos.0 == 0
+            //     && (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) == 0
+            // {
+            //     ()
+            // } else {
+            //     ctx.is_file_changed = true;
+            //     let mut str1 = String::new();
+            //     let mut pos = 0usize;
+            //     if (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) != 0
+            //         && ctx.curr_cursor_pos.0 == 0
+            //     {
+            //         pos = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
+            //             .len()
+            //             - 1;
+            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
+            //         str1 = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
+            //             .clone();
+            //     }
+
+            //     if let Some((i, _)) = ctx.buffer.vec_str.iter().enumerate().find(|&(i, _)| {
+            //         (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
+            //             && (ctx.curr_cursor_pos.0 == 0)
+            //     }) {
+            //         let str2 =
+            //             ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
+            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
+            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
+            //             format!("{}{}", str1, str2);
+            //         ctx.buffer.vec_str.remove(i - 1);
+            //         ctx.curr_cursor_pos = (pos, ctx.curr_cursor_pos.1 - 1);
+            //     } else {
+            //         ctx.buffer
+            //             .vec_str
+            //             .iter_mut()
+            //             .enumerate()
+            //             .for_each(|(i, s)| {
+            //                 if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+            //                     s.remove(ctx.curr_cursor_pos.0 - 1);
+            //                     ctx.curr_cursor_pos.0 -= 1;
+            //                 }
+            //             });
+            //     }
+            // }
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
