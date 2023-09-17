@@ -27,7 +27,7 @@ impl Buffer {
             .truncate(true)
             .open(&self.name)
             .expect("Error occured while opening or creating file!");
-        file.write_all(&self.vec_str.concat().as_bytes())
+        file.write_all(&self.buf.as_bytes())
             .expect("Error occured while writing to file!");
     }
     pub fn read_to_buffer(&mut self, p: &PathBuf) {
