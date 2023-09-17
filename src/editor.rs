@@ -701,68 +701,83 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
-            if (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == ctx.buffer.vec_str.len() - 1)
-                && ctx.cells.iter().last().unwrap().pos.0 == ctx.curr_cursor_pos.0
+            if get_internal_buf_offset(ctx).unwrap().1
+                == ctx.buffer.buf.char_indices().last().unwrap().0
             {
                 ()
             } else {
                 ctx.is_file_changed = true;
-                let mut str = String::new();
-                if let Some(s) = ctx
-                    .buffer
-                    .vec_str
-                    .get(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1)
-                {
-                    str = s.clone();
-                }
-                if let Some((_, s)) =
-                    ctx.buffer
-                        .vec_str
-                        .iter_mut()
-                        .enumerate()
-                        .find(|&(i, ref s)| {
-                            (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
-                                && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
-                        })
-                {
-                    s.remove(ctx.curr_cursor_pos.0);
-                    s.push_str(str.as_str());
-                    ctx.buffer
-                        .vec_str
-                        .remove(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
-                } else {
-                    ctx.buffer
-                        .vec_str
-                        .iter_mut()
-                        .enumerate()
-                        .for_each(|(i, s)| {
-                            if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-                                s.remove(ctx.curr_cursor_pos.0);
-                            }
-                        });
-                }
+                let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+                ctx.buffer.buf.remove(inter_buf_off.1);
             }
+
+            //     let mut str = String::new();
+            //     if let Some(s) = ctx
+            //         .buffer
+            //         .vec_str
+            //         .get(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1)
+            //     {
+            //         str = s.clone();
+            //     }
+            //     if let Some((_, s)) =
+            //         ctx.buffer
+            //             .vec_str
+            //             .iter_mut()
+            //             .enumerate()
+            //             .find(|&(i, ref s)| {
+            //                 (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
+            //                     && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
+            //             })
+            //     {
+            //         s.remove(ctx.curr_cursor_pos.0);
+            //         s.push_str(str.as_str());
+            //         ctx.buffer
+            //             .vec_str
+            //             .remove(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
+            //     } else {
+            //         ctx.buffer
+            //             .vec_str
+            //             .iter_mut()
+            //             .enumerate()
+            //             .for_each(|(i, s)| {
+            //                 if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
+            //                     s.remove(ctx.curr_cursor_pos.0);
+            //                 }
+            //             });
+            //     }
+            // }
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
             ctx.is_file_changed = true;
-            ctx.buffer
-                .vec_str
-                .iter_mut()
-                .enumerate()
-                .for_each(|(i, s)| {
-                    if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                        if c == '\t' {
-                            for _ in 0..ctx.tab_width {
-                                s.insert(ctx.curr_cursor_pos.0, ' ');
-                                ctx.curr_cursor_pos.0 += 1;
-                            }
-                        } else {
-                            s.insert(ctx.curr_cursor_pos.0, c);
-                            ctx.curr_cursor_pos.0 += 1;
-                        }
-                    }
-                });
+            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            if c == '\t' {
+                for _ in 0..ctx.tab_width {
+                    ctx.buffer.buf.insert(inter_buf_off.1, ' ');
+                    ctx.curr_cursor_pos.0 += 1;
+                }
+            } else {
+                ctx.buffer.buf.insert(inter_buf_off.1, c);
+                ctx.curr_cursor_pos.0 += 1;
+            }
+
+            // ctx.buffer
+            //     .vec_str
+            //     .iter_mut()
+            //     .enumerate()
+            //     .for_each(|(i, s)| {
+            //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+            //             if c == '\t' {
+            //                 for _ in 0..ctx.tab_width {
+            //                     s.insert(ctx.curr_cursor_pos.0, ' ');
+            //                     ctx.curr_cursor_pos.0 += 1;
+            //                 }
+            //             } else {
+            //                 s.insert(ctx.curr_cursor_pos.0, c);
+            //                 ctx.curr_cursor_pos.0 += 1;
+            //             }
+            //         }
+            //     });
             update_view_buffer(ctx);
         }
         None => (),
