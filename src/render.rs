@@ -1,6 +1,9 @@
 use macroquad::{prelude::*, window};
 
-use crate::core::{Context, Modes};
+use crate::{
+    core::{Context, Modes},
+    editor::get_ch_off_to_inline_off,
+};
 
 pub const HELP_PAGE: &str = "
 
@@ -63,18 +66,24 @@ pub fn from_str_to_cells(ctx: &mut Context) {
         ctx.buffer.buf.lines().count(),
     );
 
-    ctx.buffer.vec_str.clear();
-    for s in ctx.buffer.buf.lines() {
-        let mut ss = s.to_string();
-        ss.push('\n');
-        ctx.buffer.vec_str.push(ss);
-    }
+    // ctx.buffer.vec_str.clear();
+    // for s in ctx.buffer.buf.lines() {
+    //     let mut ss = s.to_string();
+    //     ss.push('\n');
+    //     ctx.buffer.vec_str.push(ss);
+    // }
 
-    let mut prev_lf_idx = 0usize;
-    for (line_idx, (lf_idx, _)) in ctx.buffer.buf.match_indices('\n').enumerate() {
-        if !(ctx.vert_cell_count.0..end_rng).contains(&line_idx) {
-            continue;
-        }
+    let mut prev_lf_idx;
+    let mut y_line_off = 0usize;
+    for (line_idx, (lf_idx, _)) in ctx
+        .buffer
+        .buf
+        .match_indices('\n')
+        .enumerate()
+        .filter(|l| (ctx.vert_cell_count.0..end_rng).contains(&l.0))
+    {
+        let lf_off = get_ch_off_to_inline_off(ctx, lf_idx);
+        prev_lf_idx = (lf_idx - lf_off).saturating_sub(1);
         let line;
         if line_idx == 0 {
             line = &ctx.buffer.buf[0..=lf_idx];
@@ -88,7 +97,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     c: ch,
                     coord: (x_coor, y_coor),
                     bound: (w, ctx.font_size as f32),
-                    pos: (j, line_idx),
+                    pos: (j, y_line_off),
                 });
             }
         } else {
@@ -100,12 +109,12 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     c: ch,
                     coord: (x_coor, y_coor),
                     bound: (letter_size.width, ctx.font_size as f32),
-                    pos: (j, line_idx),
+                    pos: (j, y_line_off),
                 });
             }
         }
-        y_coor = (line_idx + 1) as f32 * ctx.font_size as f32;
-        prev_lf_idx = lf_idx;
+        y_coor = (y_line_off + 1) as f32 * ctx.font_size as f32;
+        y_line_off += 1;
     }
     ctx.cells = cells;
 }

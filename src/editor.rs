@@ -289,14 +289,14 @@ fn move_cursor_up(ctx: &mut Context) {
     if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
         return ();
     }
-    if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.vec_str.get(ctx.vert_cell_count.0 - 1).is_some() {
-        update_view_buffer(ctx);
+    // if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.vec_str.get(ctx.vert_cell_count.0 - 1).is_some() {
+    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    if ctx.curr_cursor_pos.1 == 0 && inter_buf_off.0.is_some() {
         ctx.vert_cell_count.0 -= 1;
         ctx.curr_cursor_pos = (0, 0);
-        from_str_to_cells(ctx);
+        update_view_buffer(ctx);
         return ();
     }
-    update_view_buffer(ctx);
     let view_buffer = from_cells_to_string(&ctx.cells);
     if ctx
         .cells
@@ -313,28 +313,32 @@ fn move_cursor_up(ctx: &mut Context) {
             .0;
         ctx.curr_cursor_pos.1 -= 1;
     }
+    update_view_buffer(ctx);
 }
 
 fn move_cursor_down(ctx: &mut Context) {
-    if ctx.vert_cell_count.0 == ctx.buffer.vec_str.len() - 1
-        || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.vec_str.len() - 1)
+    if ctx.vert_cell_count.0 == ctx.buffer.buf.lines().count() - 1
+        || (ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1) == (ctx.buffer.buf.lines().count() - 1)
     {
         return ();
     }
+    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
     if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
-        && ctx
-            .buffer
-            .vec_str
-            .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
+        && ctx.buffer.buf[inter_buf_off.1..]
+            .chars()
+            .find(|&c| c == '\n')
             .is_some()
+    // && ctx
+    //     .buffer
+    //     .vec_str
+    //     .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
+    //     .is_some()
     {
-        update_view_buffer(ctx);
         ctx.vert_cell_count.0 += 1;
         ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
-        from_str_to_cells(ctx);
+        update_view_buffer(ctx);
         return ();
     }
-    update_view_buffer(ctx);
     let view_buffer = from_cells_to_string(&ctx.cells);
     if ctx
         .cells
@@ -354,6 +358,7 @@ fn move_cursor_down(ctx: &mut Context) {
             .0;
         ctx.curr_cursor_pos.1 += 1
     }
+    update_view_buffer(ctx);
 }
 
 fn move_cursor_left(ctx: &mut Context) {
@@ -362,7 +367,6 @@ fn move_cursor_left(ctx: &mut Context) {
     } else {
         ctx.curr_cursor_pos.0 -= 1
     }
-    dbg!(get_internal_buf_offset(ctx));
 }
 
 fn move_cursor_right(ctx: &mut Context) {
@@ -438,7 +442,7 @@ fn get_internal_buf_offset(ctx: &Context) -> Option<InternalBufOffset> {
         .map(|(index, _)| InternalBufOffset(Some(index), index + ctx.curr_cursor_pos.0 + 1))
 }
 
-fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
+pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
     let mut offset = 0usize;
     for i in (0..off).rev() {
         if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
@@ -480,7 +484,7 @@ pub async fn update_state(ctx: &mut Context) {
                 .set_directory("/")
                 .pick_file()
             {
-                ctx.buffer.vec_str.clear();
+                // ctx.buffer.vec_str.clear();
                 ctx.buffer.read_to_buffer(&file);
                 ctx.active_buf = file.to_owned();
                 update_view_buffer(ctx);
@@ -556,7 +560,7 @@ pub async fn update_state(ctx: &mut Context) {
                 if cel.is_some() {
                     ctx.curr_cursor_pos = (cel.unwrap().pos.0, cell_y);
                 } else {
-                    ctx.curr_cursor_pos = (0, 0);
+                    ctx.curr_cursor_pos = ctx.cells.iter().last().unwrap().pos;
                 }
             }
         }
@@ -566,7 +570,7 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::GoBottom) => {
-            ctx.vert_cell_count.0 = ctx.buffer.vec_str.len() - 1;
+            ctx.vert_cell_count.0 = ctx.buffer.buf.lines().count() - 1;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
         }
@@ -601,7 +605,7 @@ pub async fn update_state(ctx: &mut Context) {
                 ctx.vert_cell_count
                     .0
                     .saturating_add(ctx.vert_cell_count.1 as usize),
-                ctx.buffer.vec_str.len(),
+                ctx.buffer.buf.lines().count(),
             ) - 1;
 
             ctx.curr_cursor_pos = (0, 0);
