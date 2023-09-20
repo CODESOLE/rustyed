@@ -31,7 +31,7 @@ Not all shortcuts implemented yet.
 | `Up/Down Arrow`                      | Move cursor Up/Down.                             |
 | `Delete`                             | Delete char under cursor.                        |
 | `Backspace`                          | Remove previous char.                            |
-| `CTRL` - `W`                         | Delete previous word surround by space.          |
+| `CTRL` - `W`                         | Delete previous word surrounded by space.          |
 | `CTRL` - `C`/`X`/`V`                 | Copy/Cut/Paste.                                  |
 | `CTRL` - `Z`/`Y`                     | Undo/Redo.                                       |
 | `Shift` - `Up`/`Down`/`Right`/`Left` | Select text.                                     |
