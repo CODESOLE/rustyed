@@ -35,6 +35,8 @@ End ==> Go to end of line.
 
 Left/Right Arrow ==> Move cursor by one char left/right.
 
+Shift Up/Down/Left/Right ==> Select text.
+
 CTRL - Left/Right Arrow ==> Move cursor by word.
 
 Up/Down Arrow ==> Move cursor Up/Down.
