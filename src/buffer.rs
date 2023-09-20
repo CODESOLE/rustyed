@@ -2,14 +2,12 @@ use std::{
     fs::OpenOptions,
     io::{Read, Write},
     path::PathBuf,
-    // str::FromStr,
 };
 
 #[derive(Debug, Default)]
 pub struct Buffer {
     pub name: String,
     pub buf: String,
-    // pub vec_str: Vec<String>,
 }
 
 impl Buffer {
@@ -17,7 +15,6 @@ impl Buffer {
         Buffer {
             name: bufname.display().to_string(),
             buf: String::new(),
-            // vec_str: Vec::<String>::new(),
         }
     }
     pub fn write_to_file(&self) {
@@ -42,7 +39,6 @@ impl Buffer {
             Ok(read_bytes) => {
                 println!("{read_bytes} Bytes read from file!");
                 if read_bytes == 0 {
-                    // self.vec_str.push(String::from_str("\n").unwrap());
                     self.buf.push('\n');
                 }
             }
@@ -51,11 +47,6 @@ impl Buffer {
             }
         }
         buf = buf.replace("\r\n", "\n");
-        // for s in buf.lines() {
-        //     let mut ss = s.to_string();
-        //     ss.push('\n');
-        //     self.vec_str.push(ss);
-        // }
         self.buf = buf;
     }
 }

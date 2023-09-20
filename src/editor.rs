@@ -301,7 +301,6 @@ fn move_cursor_up(ctx: &mut Context) {
     if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
         return ();
     }
-    // if ctx.curr_cursor_pos.1 == 0 && ctx.buffer.vec_str.get(ctx.vert_cell_count.0 - 1).is_some() {
     let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
     if ctx.curr_cursor_pos.1 == 0 && inter_buf_off.0.is_some() {
         ctx.vert_cell_count.0 -= 1;
@@ -340,11 +339,6 @@ fn move_cursor_down(ctx: &mut Context) {
             .chars()
             .find(|&c| c == '\n')
             .is_some()
-    // && ctx
-    //     .buffer
-    //     .vec_str
-    //     .get(ctx.vert_cell_count.0 + ctx.vert_cell_count.1)
-    //     .is_some()
     {
         ctx.vert_cell_count.0 += 1;
         ctx.curr_cursor_pos = (0, ctx.vert_cell_count.1 - 2);
@@ -536,7 +530,6 @@ pub async fn update_state(ctx: &mut Context) {
                 .set_directory("/")
                 .pick_file()
             {
-                // ctx.buffer.vec_str.clear();
                 ctx.buffer.read_to_buffer(&file);
                 ctx.active_buf = file.to_owned();
                 update_view_buffer(ctx);
@@ -703,30 +696,6 @@ pub async fn update_state(ctx: &mut Context) {
             ctx.buffer.buf.insert(inter_buf_off.1, '\n');
             move_cursor_down(ctx);
             ctx.curr_cursor_pos.0 = 0;
-
-            // ctx.buffer
-            //     .vec_str
-            //     .iter_mut()
-            //     .enumerate()
-            //     .for_each(|(i, s)| {
-            //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-            //             s.insert(ctx.curr_cursor_pos.0, '\n');
-            //         }
-            //     });
-            // let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-            //     .find('\n')
-            //     .unwrap();
-            // let s = String::from_str(
-            //     &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
-            // )
-            // .unwrap();
-            // ctx.buffer
-            //     .vec_str
-            //     .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
-            // ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-            //     .replace_range(idx + 1.., "");
-            // move_cursor_down(ctx);
-            // ctx.curr_cursor_pos.0 = 0;
             update_view_buffer(ctx);
         }
         Some(Command::Backspace) => {
@@ -768,50 +737,6 @@ pub async fn update_state(ctx: &mut Context) {
                     ctx.curr_cursor_pos = (inline_offset, ctx.curr_cursor_pos.1 - 1);
                 }
             }
-            // if ctx.vert_cell_count.0 == 0
-            //     && ctx.curr_cursor_pos.0 == 0
-            //     && (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) == 0
-            // {
-            //     ()
-            // } else {
-            //     ctx.is_file_changed = true;
-            //     let mut str1 = String::new();
-            //     let mut pos = 0usize;
-            //     if (ctx.curr_cursor_pos.1 + ctx.vert_cell_count.0) != 0
-            //         && ctx.curr_cursor_pos.0 == 0
-            //     {
-            //         pos = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
-            //             .len()
-            //             - 1;
-            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1].pop();
-            //         str1 = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 - 1]
-            //             .clone();
-            //     }
-
-            //     if let Some((i, _)) = ctx.buffer.vec_str.iter().enumerate().find(|&(i, _)| {
-            //         (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
-            //             && (ctx.curr_cursor_pos.0 == 0)
-            //     }) {
-            //         let str2 =
-            //             ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clone();
-            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1].clear();
-            //         ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1] =
-            //             format!("{}{}", str1, str2);
-            //         ctx.buffer.vec_str.remove(i - 1);
-            //         ctx.curr_cursor_pos = (pos, ctx.curr_cursor_pos.1 - 1);
-            //     } else {
-            //         ctx.buffer
-            //             .vec_str
-            //             .iter_mut()
-            //             .enumerate()
-            //             .for_each(|(i, s)| {
-            //                 if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-            //                     s.remove(ctx.curr_cursor_pos.0 - 1);
-            //                     ctx.curr_cursor_pos.0 -= 1;
-            //                 }
-            //             });
-            //     }
-            // }
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
@@ -825,42 +750,6 @@ pub async fn update_state(ctx: &mut Context) {
                 let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
                 ctx.buffer.buf.remove(inter_buf_off.1);
             }
-
-            //     let mut str = String::new();
-            //     if let Some(s) = ctx
-            //         .buffer
-            //         .vec_str
-            //         .get(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1)
-            //     {
-            //         str = s.clone();
-            //     }
-            //     if let Some((_, s)) =
-            //         ctx.buffer
-            //             .vec_str
-            //             .iter_mut()
-            //             .enumerate()
-            //             .find(|&(i, ref s)| {
-            //                 (i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1)
-            //                     && (s.char_indices().last().unwrap().0 == ctx.curr_cursor_pos.0)
-            //             })
-            //     {
-            //         s.remove(ctx.curr_cursor_pos.0);
-            //         s.push_str(str.as_str());
-            //         ctx.buffer
-            //             .vec_str
-            //             .remove(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1);
-            //     } else {
-            //         ctx.buffer
-            //             .vec_str
-            //             .iter_mut()
-            //             .enumerate()
-            //             .for_each(|(i, s)| {
-            //                 if i == ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 {
-            //                     s.remove(ctx.curr_cursor_pos.0);
-            //                 }
-            //             });
-            //     }
-            // }
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
@@ -876,24 +765,6 @@ pub async fn update_state(ctx: &mut Context) {
                 ctx.buffer.buf.insert(inter_buf_off.1, c);
                 ctx.curr_cursor_pos.0 += 1;
             }
-
-            // ctx.buffer
-            //     .vec_str
-            //     .iter_mut()
-            //     .enumerate()
-            //     .for_each(|(i, s)| {
-            //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-            //             if c == '\t' {
-            //                 for _ in 0..ctx.tab_width {
-            //                     s.insert(ctx.curr_cursor_pos.0, ' ');
-            //                     ctx.curr_cursor_pos.0 += 1;
-            //                 }
-            //             } else {
-            //                 s.insert(ctx.curr_cursor_pos.0, c);
-            //                 ctx.curr_cursor_pos.0 += 1;
-            //             }
-            //         }
-            //     });
             update_view_buffer(ctx);
         }
         None => (),

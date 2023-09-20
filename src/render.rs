@@ -66,13 +66,6 @@ pub fn from_str_to_cells(ctx: &mut Context) {
         ctx.buffer.buf.lines().count(),
     );
 
-    // ctx.buffer.vec_str.clear();
-    // for s in ctx.buffer.buf.lines() {
-    //     let mut ss = s.to_string();
-    //     ss.push('\n');
-    //     ctx.buffer.vec_str.push(ss);
-    // }
-
     let mut prev_lf_idx;
     let mut y_line_off = 0usize;
     // TODO: Optimize for - loop slows down as we go down
