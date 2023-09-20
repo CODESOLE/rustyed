@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Keyboard selection added.
+
 ## [0.1.5] - 2023-09-16
 
 ### Added
