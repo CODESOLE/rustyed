@@ -42,6 +42,7 @@ pub struct Context {
     pub is_file_changed: bool,
     pub tab_width: u8,
     pub eof_indicator: bool,
+    pub selection_range: Option<(usize, usize)>,
 }
 
 impl Default for Context {
@@ -70,6 +71,7 @@ impl Default for Context {
             is_file_changed: false,
             tab_width: 2,
             eof_indicator: false,
+            selection_range: None,
         }
     }
 }

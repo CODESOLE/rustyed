@@ -36,6 +36,10 @@ pub enum Command {
     WordMoveLeft,
     WordMoveRight,
     MouseLeftClick,
+    ShiftSelectUp,
+    ShiftSelectDown,
+    ShiftSelectLeft,
+    ShiftSelectRight,
     Undo,
     Redo,
     Copy,
@@ -51,6 +55,14 @@ pub enum Command {
 pub fn get_command() -> Option<Command> {
     if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::S) {
         Some(Command::Save)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Left) {
+        Some(Command::ShiftSelectLeft)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Right) {
+        Some(Command::ShiftSelectRight)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Up) {
+        Some(Command::ShiftSelectUp)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Down) {
+        Some(Command::ShiftSelectDown)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::C) {
         Some(Command::Copy)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::X) {
@@ -456,6 +468,46 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
 
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
+        Some(Command::ShiftSelectUp) => {
+            if ctx.selection_range.is_none() {
+                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                dbg!(init_pos);
+                ctx.selection_range = Some((init_pos, init_pos));
+            }
+            move_cursor_up(ctx);
+            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+        }
+        Some(Command::ShiftSelectLeft) => {
+            if ctx.selection_range.is_none() {
+                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                dbg!(init_pos);
+                ctx.selection_range = Some((init_pos, init_pos));
+            }
+            move_cursor_left(ctx);
+            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+        }
+        Some(Command::ShiftSelectRight) => {
+            if ctx.selection_range.is_none() {
+                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                dbg!(init_pos);
+                ctx.selection_range = Some((init_pos, init_pos));
+            }
+            move_cursor_right(ctx);
+            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+        }
+        Some(Command::ShiftSelectDown) => {
+            if ctx.selection_range.is_none() {
+                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                dbg!(init_pos);
+                ctx.selection_range = Some((init_pos, init_pos));
+            }
+            move_cursor_down(ctx);
+            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+        }
         Some(Command::ShiftPageUp) => {
             todo!() // TODO
         }
@@ -541,6 +593,7 @@ pub async fn update_state(ctx: &mut Context) {
             ctx.mode = Modes::Edit;
         }
         Some(Command::MouseLeftClick) => {
+            ctx.selection_range = None;
             let (x, y) = input::mouse_position();
             let cell_y = (y / ctx.font_size as f32).floor() as usize;
             let cell = ctx
@@ -565,23 +618,31 @@ pub async fn update_state(ctx: &mut Context) {
             }
         }
         Some(Command::GoTop) => {
+            ctx.selection_range = None;
             ctx.vert_cell_count.0 = 0;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
         }
         Some(Command::GoBottom) => {
+            ctx.selection_range = None;
             ctx.vert_cell_count.0 = ctx.buffer.buf.lines().count() - 1;
             ctx.curr_cursor_pos = (0, 0);
             update_view_buffer(ctx);
         }
         Some(Command::WordMoveRight) => {
+            ctx.selection_range = None;
             move_cursor_right_word(ctx);
         }
         Some(Command::WordMoveLeft) => {
+            ctx.selection_range = None;
             move_cursor_left_word(ctx);
         }
-        Some(Command::Home) => ctx.curr_cursor_pos.0 = 0,
+        Some(Command::Home) => {
+            ctx.selection_range = None;
+            ctx.curr_cursor_pos.0 = 0;
+        }
         Some(Command::End) => {
+            ctx.selection_range = None;
             let view_buffer = from_cells_to_string(&ctx.cells);
             ctx.curr_cursor_pos.0 = view_buffer[ctx.curr_cursor_pos.1]
                 .char_indices()
@@ -590,6 +651,7 @@ pub async fn update_state(ctx: &mut Context) {
                 .0;
         }
         Some(Command::PageUp) => {
+            ctx.selection_range = None;
             ctx.vert_cell_count.0 = std::cmp::max(
                 ctx.vert_cell_count
                     .0
@@ -601,6 +663,7 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::PageDown) => {
+            ctx.selection_range = None;
             ctx.vert_cell_count.0 = std::cmp::min(
                 ctx.vert_cell_count
                     .0
@@ -612,56 +675,85 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::MoveUp) => {
+            ctx.selection_range = None;
             move_cursor_up(ctx);
         }
         Some(Command::MoveDown) => {
+            ctx.selection_range = None;
             move_cursor_down(ctx);
         }
         Some(Command::MoveLeft) => {
+            ctx.selection_range = None;
             move_cursor_left(ctx);
         }
         Some(Command::MoveRight) => {
+            ctx.selection_range = None;
             move_cursor_right(ctx);
         }
         Some(Command::DeleteWord) => {
+            ctx.selection_range = None;
             ctx.is_file_changed = true;
             delete_word(ctx);
         }
         Some(Command::Enter) => {
+            ctx.selection_range = None;
+            ctx.mode = Modes::Edit;
             ctx.is_file_changed = true;
-            if ctx.mode == Modes::Edit {
-                let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
-                ctx.buffer.buf.insert(inter_buf_off.1, '\n');
-                move_cursor_down(ctx);
-                ctx.curr_cursor_pos.0 = 0;
+            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            ctx.buffer.buf.insert(inter_buf_off.1, '\n');
+            move_cursor_down(ctx);
+            ctx.curr_cursor_pos.0 = 0;
 
-                // ctx.buffer
-                //     .vec_str
-                //     .iter_mut()
-                //     .enumerate()
-                //     .for_each(|(i, s)| {
-                //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
-                //             s.insert(ctx.curr_cursor_pos.0, '\n');
-                //         }
-                //     });
-                // let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                //     .find('\n')
-                //     .unwrap();
-                // let s = String::from_str(
-                //     &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
-                // )
-                // .unwrap();
-                // ctx.buffer
-                //     .vec_str
-                //     .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
-                // ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
-                //     .replace_range(idx + 1.., "");
-                // move_cursor_down(ctx);
-                // ctx.curr_cursor_pos.0 = 0;
-                update_view_buffer(ctx);
-            }
+            // ctx.buffer
+            //     .vec_str
+            //     .iter_mut()
+            //     .enumerate()
+            //     .for_each(|(i, s)| {
+            //         if ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 == i {
+            //             s.insert(ctx.curr_cursor_pos.0, '\n');
+            //         }
+            //     });
+            // let idx = ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+            //     .find('\n')
+            //     .unwrap();
+            // let s = String::from_str(
+            //     &ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1][idx + 1..],
+            // )
+            // .unwrap();
+            // ctx.buffer
+            //     .vec_str
+            //     .insert(ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1 + 1, s);
+            // ctx.buffer.vec_str[ctx.vert_cell_count.0 + ctx.curr_cursor_pos.1]
+            //     .replace_range(idx + 1.., "");
+            // move_cursor_down(ctx);
+            // ctx.curr_cursor_pos.0 = 0;
+            update_view_buffer(ctx);
         }
         Some(Command::Backspace) => {
+            if ctx.selection_range.is_some() {
+                if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
+                    // TODO: handle cursor placement after deletion
+                    ctx.buffer.buf.replace_range(
+                        ctx.selection_range.unwrap().0..=ctx.selection_range.unwrap().1,
+                        "",
+                    );
+                } else {
+                    ctx.buffer.buf.replace_range(
+                        ctx.selection_range.unwrap().1..=ctx.selection_range.unwrap().0,
+                        "",
+                    );
+                    ctx.curr_cursor_pos = ctx
+                        .cells
+                        .iter()
+                        .filter(|c| c.pos == ctx.curr_cursor_pos)
+                        .next()
+                        .unwrap()
+                        .pos;
+                }
+                ctx.selection_range = None;
+                return;
+            }
+
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
             let inline_off = inter_buf_off.get_inline_offset();
             if inter_buf_off.1 == 0 {
@@ -723,6 +815,7 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
+            // TODO: selection handle
             if get_internal_buf_offset(ctx).unwrap().1
                 == ctx.buffer.buf.char_indices().last().unwrap().0
             {
@@ -771,6 +864,7 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
+            // TODO: selection handle
             ctx.is_file_changed = true;
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
             if c == '\t' {

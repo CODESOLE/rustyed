@@ -75,6 +75,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
 
     let mut prev_lf_idx;
     let mut y_line_off = 0usize;
+    // TODO: Optimize for - loop slows down as we go down
     for (line_idx, (lf_idx, _)) in ctx
         .buffer
         .buf
@@ -295,10 +296,17 @@ fn draw_eof_indicator(ctx: &Context) {
     }
 }
 
+fn draw_selection(ctx: &Context) {
+    // TODO
+}
+
 pub async fn render(ctx: &Context) {
     clear_background(ctx.bg_color);
     if ctx.eof_indicator {
         draw_eof_indicator(ctx);
+    }
+    if ctx.selection_range.is_some() {
+        draw_selection(ctx);
     }
     let cursor_to_render = ctx
         .cells
