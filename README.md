@@ -26,7 +26,7 @@ Not all shortcuts implemented yet.
 | `Home`                               | Go to begining of line.                          |
 | `End`                                | Go to end of line.                               |
 | `Left/Right Arrow`                   | Move cursor by one char left/right.              |
-| `Shift` `Up`/`Down`/`Left`/`Right`           | Select text.                                     |
+| `Shift` - `Up`/`Down`/`Left`/`Right`           | Select text.                                     |
 | `CTRL` - `Left/Right Arrow`          | Move cursor by word left/right.                  |
 | `Up/Down Arrow`                      | Move cursor Up/Down.                             |
 | `Delete`                             | Delete char under cursor.                        |
