@@ -460,6 +460,38 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
     offset
 }
 
+fn delete_selection(ctx: &mut Context) {
+    if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
+        let y = ctx
+            .cells
+            .get(..ctx.selection_range.unwrap().0 % ctx.cells.len())
+            .unwrap()
+            .iter()
+            .filter(|c| c.c == '\n')
+            .count();
+        let x = get_ch_off_to_inline_off(ctx, ctx.selection_range.unwrap().0);
+        dbg!(x, y);
+        ctx.curr_cursor_pos = (x, y);
+        ctx.buffer.buf.replace_range(
+            ctx.selection_range.unwrap().0..=ctx.selection_range.unwrap().1,
+            "",
+        );
+    } else {
+        ctx.curr_cursor_pos = ctx
+            .cells
+            .iter()
+            .filter(|c| c.pos == ctx.curr_cursor_pos)
+            .next()
+            .unwrap()
+            .pos;
+        ctx.buffer.buf.replace_range(
+            ctx.selection_range.unwrap().1..=ctx.selection_range.unwrap().0,
+            "",
+        );
+    }
+    ctx.selection_range = None;
+}
+
 pub async fn update_state(ctx: &mut Context) {
     match get_command() {
         Some(Command::ShiftSelectUp) => {
@@ -689,7 +721,10 @@ pub async fn update_state(ctx: &mut Context) {
             delete_word(ctx);
         }
         Some(Command::Enter) => {
-            ctx.selection_range = None;
+            if ctx.selection_range.is_some() {
+                delete_selection(ctx);
+            }
+
             ctx.mode = Modes::Edit;
             ctx.is_file_changed = true;
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
@@ -700,26 +735,8 @@ pub async fn update_state(ctx: &mut Context) {
         }
         Some(Command::Backspace) => {
             if ctx.selection_range.is_some() {
-                if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
-                    // TODO: handle cursor placement after deletion
-                    ctx.buffer.buf.replace_range(
-                        ctx.selection_range.unwrap().0..=ctx.selection_range.unwrap().1,
-                        "",
-                    );
-                } else {
-                    ctx.buffer.buf.replace_range(
-                        ctx.selection_range.unwrap().1..=ctx.selection_range.unwrap().0,
-                        "",
-                    );
-                    ctx.curr_cursor_pos = ctx
-                        .cells
-                        .iter()
-                        .filter(|c| c.pos == ctx.curr_cursor_pos)
-                        .next()
-                        .unwrap()
-                        .pos;
-                }
-                ctx.selection_range = None;
+                ctx.is_file_changed = true;
+                delete_selection(ctx);
                 return;
             }
 
@@ -740,7 +757,12 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::Delete) => {
-            // TODO: selection handle
+            if ctx.selection_range.is_some() {
+                ctx.is_file_changed = true;
+                delete_selection(ctx);
+                return;
+            }
+
             if get_internal_buf_offset(ctx).unwrap().1
                 == ctx.buffer.buf.char_indices().last().unwrap().0
             {
@@ -753,7 +775,10 @@ pub async fn update_state(ctx: &mut Context) {
             update_view_buffer(ctx);
         }
         Some(Command::CharPressed(c)) => {
-            // TODO: selection handle
+            if ctx.selection_range.is_some() {
+                delete_selection(ctx);
+            }
+
             ctx.is_file_changed = true;
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
             if c == '\t' {
