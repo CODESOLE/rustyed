@@ -57,6 +57,7 @@ pub struct Cell {
     pub coord: (f32, f32),
     pub bound: (f32, f32),
     pub pos: (usize, usize),
+    pub bg_color: Color,
 }
 
 pub fn from_str_to_cells(ctx: &mut Context) {
@@ -94,6 +95,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     coord: (x_coor, y_coor),
                     bound: (w, ctx.font_size as f32),
                     pos: (j, y_line_off),
+                    bg_color: ctx.bg_color,
                 });
             }
         } else {
@@ -106,6 +108,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     coord: (x_coor, y_coor),
                     bound: (letter_size.width, ctx.font_size as f32),
                     pos: (j, y_line_off),
+                    bg_color: ctx.bg_color,
                 });
             }
         }
