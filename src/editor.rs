@@ -462,28 +462,13 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
 
 fn delete_selection(ctx: &mut Context) {
     if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
-        let y = ctx
-            .cells
-            .get(..ctx.selection_range.unwrap().0 % ctx.cells.len())
-            .unwrap()
-            .iter()
-            .filter(|c| c.c == '\n')
-            .count();
-        let x = get_ch_off_to_inline_off(ctx, ctx.selection_range.unwrap().0);
-        dbg!(x, y);
-        ctx.curr_cursor_pos = (x, y);
+        ctx.curr_cursor_pos = ctx.cells[ctx.selection_range.unwrap().0 % ctx.cells.len()].pos;
         ctx.buffer.buf.replace_range(
             ctx.selection_range.unwrap().0..=ctx.selection_range.unwrap().1,
             "",
         );
     } else {
-        ctx.curr_cursor_pos = ctx
-            .cells
-            .iter()
-            .filter(|c| c.pos == ctx.curr_cursor_pos)
-            .next()
-            .unwrap()
-            .pos;
+        ctx.curr_cursor_pos = ctx.cells[ctx.selection_range.unwrap().1 % ctx.cells.len()].pos;
         ctx.buffer.buf.replace_range(
             ctx.selection_range.unwrap().1..=ctx.selection_range.unwrap().0,
             "",
