@@ -11,6 +11,7 @@ pub struct Config {
     pub font_size: Option<String>,
     pub font: Option<String>,
     pub cursor_col: Option<String>,
+    pub select_col: Option<String>,
     pub cursor_line: Option<String>,
     pub tab_width: Option<String>,
     pub eof_indicator: Option<String>,
@@ -21,6 +22,7 @@ impl Default for Config {
         Config {
             bg_col: None,
             font_col: None,
+            select_col: None,
             font_size: None,
             font: None,
             cursor_col: None,
@@ -80,6 +82,7 @@ pub fn parse_config(conf_path: &Path) -> Result<Config, Box<dyn Error>> {
     config.font_size = pairs.get("font_size").cloned().take();
     config.bg_col = pairs.get("bg_col").cloned().take();
     config.cursor_col = pairs.get("cursor_col").cloned().take();
+    config.select_col = pairs.get("selection_col").cloned().take();
     config.cursor_line = pairs.get("cursor_line").cloned().take();
     config.tab_width = pairs.get("tab_width").cloned().take();
     config.eof_indicator = pairs.get("eof_indicator").cloned().take();
