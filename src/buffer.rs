@@ -47,6 +47,7 @@ impl Buffer {
             }
         }
         buf = buf.replace("\r\n", "\n");
+        buf.push('\n');
         self.buf = buf;
     }
 }
