@@ -462,15 +462,15 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
 
 fn delete_selection(ctx: &mut Context) {
     if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
-        ctx.curr_cursor_pos = ctx.cells[ctx.selection_range.unwrap().0 % ctx.cells.len()].pos;
+        ctx.curr_cursor_pos = ctx.selection_range.unwrap().0 .1;
         ctx.buffer.buf.replace_range(
-            ctx.selection_range.unwrap().0..=ctx.selection_range.unwrap().1,
+            ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0,
             "",
         );
     } else {
-        ctx.curr_cursor_pos = ctx.cells[ctx.selection_range.unwrap().1 % ctx.cells.len()].pos;
+        ctx.curr_cursor_pos = ctx.selection_range.unwrap().1 .1;
         ctx.buffer.buf.replace_range(
-            ctx.selection_range.unwrap().1..=ctx.selection_range.unwrap().0,
+            ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0,
             "",
         );
     }
@@ -482,42 +482,62 @@ pub async fn update_state(ctx: &mut Context) {
         Some(Command::ShiftSelectUp) => {
             if ctx.selection_range.is_none() {
                 let init_pos = get_internal_buf_offset(ctx).unwrap().1;
-                dbg!(init_pos);
-                ctx.selection_range = Some((init_pos, init_pos));
+                ctx.selection_range = Some((
+                    (init_pos, ctx.curr_cursor_pos),
+                    (init_pos, ctx.curr_cursor_pos),
+                ));
             }
             move_cursor_up(ctx);
             let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
-            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+            ctx.selection_range = Some((
+                ctx.selection_range.unwrap().0,
+                (curr_pos, ctx.curr_cursor_pos),
+            ));
         }
         Some(Command::ShiftSelectLeft) => {
             if ctx.selection_range.is_none() {
                 let init_pos = get_internal_buf_offset(ctx).unwrap().1;
-                dbg!(init_pos);
-                ctx.selection_range = Some((init_pos, init_pos));
+                ctx.selection_range = Some((
+                    (init_pos, ctx.curr_cursor_pos),
+                    (init_pos, ctx.curr_cursor_pos),
+                ));
             }
             move_cursor_left(ctx);
             let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
-            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+            ctx.selection_range = Some((
+                ctx.selection_range.unwrap().0,
+                (curr_pos, ctx.curr_cursor_pos),
+            ));
         }
         Some(Command::ShiftSelectRight) => {
             if ctx.selection_range.is_none() {
                 let init_pos = get_internal_buf_offset(ctx).unwrap().1;
-                dbg!(init_pos);
-                ctx.selection_range = Some((init_pos, init_pos));
+                ctx.selection_range = Some((
+                    (init_pos, ctx.curr_cursor_pos),
+                    (init_pos, ctx.curr_cursor_pos),
+                ));
             }
             move_cursor_right(ctx);
             let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
-            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+            ctx.selection_range = Some((
+                ctx.selection_range.unwrap().0,
+                (curr_pos, ctx.curr_cursor_pos),
+            ));
         }
         Some(Command::ShiftSelectDown) => {
             if ctx.selection_range.is_none() {
                 let init_pos = get_internal_buf_offset(ctx).unwrap().1;
-                dbg!(init_pos);
-                ctx.selection_range = Some((init_pos, init_pos));
+                ctx.selection_range = Some((
+                    (init_pos, ctx.curr_cursor_pos),
+                    (init_pos, ctx.curr_cursor_pos),
+                ));
             }
             move_cursor_down(ctx);
             let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
-            ctx.selection_range = Some((ctx.selection_range.unwrap().0, curr_pos));
+            ctx.selection_range = Some((
+                ctx.selection_range.unwrap().0,
+                (curr_pos, ctx.curr_cursor_pos),
+            ));
         }
         Some(Command::ShiftPageUp) => {
             todo!() // TODO

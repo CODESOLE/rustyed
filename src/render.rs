@@ -295,7 +295,41 @@ fn draw_eof_indicator(ctx: &Context) {
 }
 
 fn draw_selection(ctx: &Context) {
-    // TODO
+    let end = ctx
+        .cells
+        .iter()
+        .enumerate()
+        .find(|&(_, c)| c.pos == ctx.selection_range.unwrap().1 .1)
+        .unwrap()
+        .0;
+    let start = ctx
+        .cells
+        .iter()
+        .enumerate()
+        .find(|&(_, c)| c.pos == ctx.selection_range.unwrap().0 .1)
+        .unwrap()
+        .0;
+    if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
+        for c in &ctx.cells[start..=end] {
+            draw_rectangle(
+                c.coord.0,
+                c.coord.1,
+                c.bound.0,
+                c.bound.1,
+                ctx.selection_col,
+            );
+        }
+    } else {
+        for c in &ctx.cells[end..=start] {
+            draw_rectangle(
+                c.coord.0,
+                c.coord.1,
+                c.bound.0,
+                c.bound.1,
+                ctx.selection_col,
+            );
+        }
+    }
 }
 
 pub async fn render(ctx: &Context) {
@@ -303,21 +337,25 @@ pub async fn render(ctx: &Context) {
     if ctx.eof_indicator {
         draw_eof_indicator(ctx);
     }
-    if ctx.selection_range.is_some() {
-        draw_selection(ctx);
-    }
     let cursor_to_render = ctx
         .cells
         .iter()
         .filter(|c| c.pos == ctx.curr_cursor_pos)
         .next()
         .unwrap();
-    if ctx.is_cursorline {
-        draw_cursor_line(ctx, cursor_to_render);
-    }
     for cell in ctx.cells.iter() {
         if cell.c == '\n' {
             continue;
+        }
+        draw_rectangle(
+            cell.coord.0,
+            cell.coord.1,
+            cell.bound.0,
+            cell.bound.1,
+            cell.bg_color,
+        );
+        if ctx.selection_range.is_some() {
+            draw_selection(ctx);
         }
         draw_text_ex(
             &cell.c.to_string(),
@@ -330,6 +368,9 @@ pub async fn render(ctx: &Context) {
                 ..Default::default()
             },
         );
+    }
+    if ctx.is_cursorline {
+        draw_cursor_line(ctx, cursor_to_render);
     }
     draw_rectangle(
         cursor_to_render.coord.0,
