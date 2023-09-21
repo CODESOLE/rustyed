@@ -4,4 +4,5 @@
         "editor.formatOnPaste": true,
         "editor.defaultFormatter": "rust-lang.rust-analyzer"
     },
+    "files.eol": "\n",
 }
