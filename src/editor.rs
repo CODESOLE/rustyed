@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use macroquad::{
     input,
     prelude::{
@@ -408,24 +410,6 @@ fn move_cursor_right_word(ctx: &mut Context) {
     }
 }
 
-fn delete_word(ctx: &mut Context) {
-    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
-    let inline_offset = inter_buf_off.get_inline_offset();
-    let str;
-    if let Some(lfidx) = inter_buf_off.0 {
-        str = &ctx.buffer.buf[lfidx + 1..inter_buf_off.1];
-    } else {
-        str = &ctx.buffer.buf[..inter_buf_off.1];
-    }
-    if let Some(idx) = str.rfind(' ') {
-        ctx.buffer
-            .buf
-            .replace_range(inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1, "");
-        ctx.curr_cursor_pos.0 = idx;
-    }
-    update_view_buffer(ctx);
-}
-
 #[derive(Debug)]
 pub struct InternalBufOffset(Option<usize>, usize);
 impl InternalBufOffset {
@@ -461,21 +445,63 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
     offset
 }
 
-fn delete_selection(ctx: &mut Context) {
-    if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
+fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
+    if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
         ctx.curr_cursor_pos = ctx.selection_range.unwrap().0 .1;
-        ctx.buffer.buf.replace_range(
-            ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0,
-            "",
+        record.apply(
+            ctx,
+            Change::DeleteSelection(
+                ctx.selection_range.unwrap().0 .0,
+                String::from_str(
+                    &ctx.buffer.buf
+                        [ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0],
+                )
+                .unwrap(),
+            ),
         );
     } else {
         ctx.curr_cursor_pos = ctx.selection_range.unwrap().1 .1;
-        ctx.buffer.buf.replace_range(
-            ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0,
-            "",
+        record.apply(
+            ctx,
+            Change::DeleteSelection(
+                ctx.selection_range.unwrap().1 .0,
+                String::from_str(
+                    &ctx.buffer.buf
+                        [ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0],
+                )
+                .unwrap(),
+            ),
         );
     }
     ctx.selection_range = None;
+}
+
+fn delete_word(ctx: &mut Context, record: &mut Record<Change>) {
+    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    let inline_offset = inter_buf_off.get_inline_offset();
+    let str;
+    if let Some(lfidx) = inter_buf_off.0 {
+        str = &ctx.buffer.buf[lfidx + 1..inter_buf_off.1];
+    } else {
+        str = &ctx.buffer.buf[..inter_buf_off.1];
+    }
+    if let Some(idx) = str.rfind(' ') {
+        record.apply(
+            ctx,
+            Change::DeleteWord(
+                inter_buf_off.1 - (inline_offset - idx),
+                String::from_str(
+                    &ctx.buffer.buf[inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1],
+                )
+                .unwrap(),
+            ),
+        );
+        // ctx.buffer
+        //     .buf
+        //     .replace_range(inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1, "");
+        ctx.curr_cursor_pos.0 = idx;
+    }
+    update_view_buffer(ctx);
 }
 
 pub enum Change {
@@ -491,36 +517,70 @@ pub enum Change {
 
 impl undo::Action for Change {
     type Target = Context;
-
     type Output = ();
 
     fn apply(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
-            Change::DeleteWord(idx, s) => {}
+            Change::DeleteWord(idx, s) => {
+                target.buffer.buf.replace_range(*idx..*idx + s.len(), "");
+            }
             Change::Delete(idx, _) => {
                 target.buffer.buf.remove(*idx);
             }
-            Change::Backspace(idx, c) => {}
-            Change::Enter(idx) => {}
-            Change::InsertChar(idx, c) => {}
+            Change::Backspace(idx, _) => {
+                target.buffer.buf.remove(*idx);
+            }
+            Change::Enter(idx) => {
+                target.buffer.buf.insert(*idx, '\n');
+            }
+            Change::InsertChar(idx, c) => {
+                if *c == '\t' {
+                    for _ in 0..target.tab_width {
+                        target.buffer.buf.insert(*idx, ' ');
+                    }
+                } else {
+                    target.buffer.buf.insert(*idx, *c);
+                }
+            }
             Change::Paste(idx, s) => {}
             Change::Cut(idx, s) => {}
-            Change::DeleteSelection(idx, s) => {}
+            Change::DeleteSelection(idx, s) => {
+                target
+                    .buffer
+                    .buf
+                    .replace_range(*idx..=(*idx + s.len() - 1), "");
+            }
         }
     }
 
     fn undo(&mut self, target: &mut Self::Target) -> Self::Output {
         match self {
-            Change::DeleteWord(idx, s) => {}
+            Change::DeleteWord(idx, s) => {
+                target.buffer.buf.insert_str(*idx, s);
+            }
             Change::Delete(idx, c) => {
                 target.buffer.buf.insert(*idx, *c);
             }
-            Change::Backspace(idx, c) => {}
-            Change::Enter(idx) => {}
-            Change::InsertChar(idx, c) => {}
+            Change::Backspace(idx, c) => {
+                target.buffer.buf.insert(*idx, *c);
+            }
+            Change::Enter(idx) => {
+                target.buffer.buf.remove(*idx);
+            }
+            Change::InsertChar(idx, c) => {
+                if *c == '\t' {
+                    for _ in 0..target.tab_width {
+                        target.buffer.buf.remove(*idx);
+                    }
+                } else {
+                    target.buffer.buf.remove(*idx);
+                }
+            }
             Change::Paste(idx, s) => {}
             Change::Cut(idx, s) => {}
-            Change::DeleteSelection(idx, s) => {}
+            Change::DeleteSelection(idx, s) => {
+                target.buffer.buf.insert_str(*idx, s);
+            }
         }
     }
 }
@@ -771,17 +831,17 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
         Some(Command::DeleteWord) => {
             ctx.selection_range = None;
             ctx.is_file_changed = true;
-            delete_word(ctx);
+            delete_word(ctx, record);
         }
         Some(Command::Enter) => {
             if ctx.selection_range.is_some() {
-                delete_selection(ctx);
+                delete_selection(ctx, record);
             }
 
             ctx.mode = Modes::Edit;
             ctx.is_file_changed = true;
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
-            ctx.buffer.buf.insert(inter_buf_off.1, '\n');
+            record.apply(ctx, Change::Enter(inter_buf_off.1));
             move_cursor_down(ctx);
             ctx.curr_cursor_pos.0 = 0;
             update_view_buffer(ctx);
@@ -789,7 +849,7 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
         Some(Command::Backspace) => {
             if ctx.selection_range.is_some() {
                 ctx.is_file_changed = true;
-                delete_selection(ctx);
+                delete_selection(ctx, record);
                 return;
             }
 
@@ -800,7 +860,14 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
             } else {
                 let inline_offset = get_ch_off_to_inline_off(ctx, inter_buf_off.1 - 1);
                 ctx.is_file_changed = true;
-                ctx.buffer.buf.remove(inter_buf_off.1 - 1);
+                record.apply(
+                    ctx,
+                    Change::Backspace(
+                        inter_buf_off.1 - 1,
+                        ctx.buffer.buf.chars().nth(inter_buf_off.1 - 1).unwrap(),
+                    ),
+                );
+                // ctx.buffer.buf.remove(inter_buf_off.1 - 1);
                 if inline_off != 0 {
                     ctx.curr_cursor_pos.0 -= 1;
                 } else {
@@ -812,7 +879,7 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
         Some(Command::Delete) => {
             if ctx.selection_range.is_some() {
                 ctx.is_file_changed = true;
-                delete_selection(ctx);
+                delete_selection(ctx, record);
                 return;
             }
 
@@ -835,18 +902,17 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
         }
         Some(Command::CharPressed(c)) => {
             if ctx.selection_range.is_some() {
-                delete_selection(ctx);
+                delete_selection(ctx, record);
             }
 
             ctx.is_file_changed = true;
             let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            record.apply(ctx, Change::InsertChar(inter_buf_off.1, c));
             if c == '\t' {
                 for _ in 0..ctx.tab_width {
-                    ctx.buffer.buf.insert(inter_buf_off.1, ' ');
                     ctx.curr_cursor_pos.0 += 1;
                 }
             } else {
-                ctx.buffer.buf.insert(inter_buf_off.1, c);
                 ctx.curr_cursor_pos.0 += 1;
             }
             update_view_buffer(ctx);

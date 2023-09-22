@@ -309,7 +309,7 @@ fn draw_selection(ctx: &Context) {
         .find(|&(_, c)| c.pos == ctx.selection_range.unwrap().0 .1)
         .unwrap()
         .0;
-    if ctx.selection_range.unwrap().0 < ctx.selection_range.unwrap().1 {
+    if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
         for c in &ctx.cells[start..=end] {
             draw_rectangle(
                 c.coord.0,
