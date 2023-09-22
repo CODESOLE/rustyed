@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+TryExec=rustyed
+Exec=rustyed
+Icon=rustyed
+Terminal=false
+Categories=Application;Text Editor;
+
+Name=rustyed
+GenericName=TextEditor
+Comment=Very simple, primal text editor written in Rust.
+StartupNotify=true
+StartupWMClass=rustyed
+Actions=New;
+
+[Desktop Action New]
+Name=New Editor
+Exec=rustyed
