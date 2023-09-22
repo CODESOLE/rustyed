@@ -4,6 +4,7 @@ use macroquad::window::Conf;
 use rfd::FileDialog;
 use std::path::PathBuf;
 use std::str::FromStr;
+use undo::Record;
 mod buffer;
 mod config;
 mod core;
@@ -28,6 +29,7 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut ctx: Context = Default::default();
+    let mut record = Record::new();
     if std::env::args().count() > 1 {
         let file = std::env::args().nth(1).unwrap();
         let path = PathBuf::from_str(&file)
@@ -39,7 +41,7 @@ async fn main() {
         init(&mut ctx, &config, &path).await;
 
         while !ctx.is_exit {
-            update_state(&mut ctx).await;
+            update_state(&mut ctx, &mut record).await;
             render(&mut ctx).await;
         }
     } else {
@@ -55,7 +57,7 @@ async fn main() {
             init(&mut ctx, &config, &file).await;
 
             while !ctx.is_exit {
-                update_state(&mut ctx).await;
+                update_state(&mut ctx, &mut record).await;
                 render(&mut ctx).await;
             }
         } else {

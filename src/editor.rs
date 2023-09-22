@@ -7,6 +7,7 @@ use macroquad::{
     window::screen_height,
 };
 use rfd::FileDialog;
+use undo::Record;
 
 use crate::{
     core::{Context, Modes, SearchResults},
@@ -477,7 +478,54 @@ fn delete_selection(ctx: &mut Context) {
     ctx.selection_range = None;
 }
 
-pub async fn update_state(ctx: &mut Context) {
+pub enum Change {
+    DeleteWord(usize, String),
+    DeleteSelection(usize, String),
+    Delete(usize, char),
+    Backspace(usize, char),
+    Enter(usize),
+    InsertChar(usize, char),
+    Paste(usize, String),
+    Cut(usize, String),
+}
+
+impl undo::Action for Change {
+    type Target = Context;
+
+    type Output = ();
+
+    fn apply(&mut self, target: &mut Self::Target) -> Self::Output {
+        match self {
+            Change::DeleteWord(idx, s) => {}
+            Change::Delete(idx, _) => {
+                target.buffer.buf.remove(*idx);
+            }
+            Change::Backspace(idx, c) => {}
+            Change::Enter(idx) => {}
+            Change::InsertChar(idx, c) => {}
+            Change::Paste(idx, s) => {}
+            Change::Cut(idx, s) => {}
+            Change::DeleteSelection(idx, s) => {}
+        }
+    }
+
+    fn undo(&mut self, target: &mut Self::Target) -> Self::Output {
+        match self {
+            Change::DeleteWord(idx, s) => {}
+            Change::Delete(idx, c) => {
+                target.buffer.buf.insert(*idx, *c);
+            }
+            Change::Backspace(idx, c) => {}
+            Change::Enter(idx) => {}
+            Change::InsertChar(idx, c) => {}
+            Change::Paste(idx, s) => {}
+            Change::Cut(idx, s) => {}
+            Change::DeleteSelection(idx, s) => {}
+        }
+    }
+}
+
+pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
     match get_command() {
         Some(Command::ShiftSelectUp) => {
             if ctx.selection_range.is_none() {
@@ -546,10 +594,10 @@ pub async fn update_state(ctx: &mut Context) {
             todo!() // TODO
         }
         Some(Command::Undo) => {
-            todo!() // TODO
+            record.undo(ctx);
         }
         Some(Command::Redo) => {
-            todo!() // TODO
+            record.redo(ctx);
         }
         Some(Command::Copy) => {
             todo!() // TODO
@@ -775,7 +823,13 @@ pub async fn update_state(ctx: &mut Context) {
             } else {
                 ctx.is_file_changed = true;
                 let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
-                ctx.buffer.buf.remove(inter_buf_off.1);
+                record.apply(
+                    ctx,
+                    Change::Delete(
+                        inter_buf_off.1,
+                        ctx.buffer.buf.chars().nth(inter_buf_off.1).unwrap(),
+                    ),
+                );
             }
             update_view_buffer(ctx);
         }
