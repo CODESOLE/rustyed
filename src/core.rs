@@ -3,6 +3,7 @@ use crate::{
     config::*,
     render::{from_str_to_cells, Cell},
 };
+use copypasta::ClipboardContext;
 use macroquad::prelude::*;
 use std::path::{Path, PathBuf};
 
@@ -44,6 +45,7 @@ pub struct Context {
     pub tab_width: u8,
     pub eof_indicator: bool,
     pub selection_range: Option<((usize, (usize, usize)), (usize, (usize, usize)))>,
+    pub clipboard: ClipboardContext,
 }
 
 impl Default for Context {
@@ -74,6 +76,7 @@ impl Default for Context {
             tab_width: 2,
             eof_indicator: false,
             selection_range: None,
+            clipboard: ClipboardContext::new().expect("Failed when creating clipboard context!"),
         }
     }
 }

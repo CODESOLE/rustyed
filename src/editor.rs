@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use copypasta::{self, ClipboardProvider};
 use macroquad::{
     input,
     prelude::{
@@ -452,11 +453,10 @@ fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
             ctx,
             Change::DeleteSelection(
                 ctx.selection_range.unwrap().0 .0,
-                String::from_str(
+                String::from(
                     &ctx.buffer.buf
                         [ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0],
-                )
-                .unwrap(),
+                ),
             ),
         );
     } else {
@@ -465,11 +465,10 @@ fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
             ctx,
             Change::DeleteSelection(
                 ctx.selection_range.unwrap().1 .0,
-                String::from_str(
+                String::from(
                     &ctx.buffer.buf
                         [ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0],
-                )
-                .unwrap(),
+                ),
             ),
         );
     }
@@ -585,6 +584,27 @@ impl undo::Action for Change {
     }
 }
 
+fn get_curr_line(ctx: &Context) -> String {
+    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let mut first_idx = off;
+    for i in (0..off).rev() {
+        if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
+            first_idx -= 1;
+        } else {
+            break;
+        }
+    }
+    let mut second_idx = off;
+    for i in off..ctx.buffer.buf.len() {
+        if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
+            second_idx += 1;
+        } else {
+            break;
+        }
+    }
+    String::from(&ctx.buffer.buf[first_idx..=second_idx])
+}
+
 pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
     match get_command() {
         Some(Command::ShiftSelectUp) => {
@@ -660,7 +680,30 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
             record.redo(ctx);
         }
         Some(Command::Copy) => {
-            todo!() // TODO
+            if ctx.selection_range.is_some() {
+                if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
+                    let str = &ctx.buffer.buf
+                        [ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0];
+                    ctx.clipboard
+                        .set_contents(str.to_owned())
+                        .expect("Failed when copying text to system clipboard!");
+                    dbg!(&str);
+                } else {
+                    let str = &ctx.buffer.buf
+                        [ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0];
+                    ctx.clipboard
+                        .set_contents(str.to_owned())
+                        .expect("Failed when copying text to system clipboard!");
+                    dbg!(&str);
+                }
+            } else {
+                let curr_line = get_curr_line(ctx);
+                dbg!(&curr_line);
+                ctx.clipboard
+                    .set_contents(curr_line)
+                    .expect("Failed when copying text to system clipboard!");
+            }
+            ctx.selection_range = None;
         }
         Some(Command::Cut) => {
             todo!() // TODO
