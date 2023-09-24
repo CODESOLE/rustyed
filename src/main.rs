@@ -30,6 +30,10 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut ctx: Context = Default::default();
     let mut record = Record::new();
+    let bell: macroquad::audio::Sound =
+        macroquad::audio::load_sound_from_bytes(include_bytes!("../assets/notify_bell.wav"))
+            .await
+            .unwrap();
     if std::env::args().count() > 1 {
         let file = std::env::args().nth(1).unwrap();
         let path = PathBuf::from_str(&file)
@@ -41,7 +45,7 @@ async fn main() {
         init(&mut ctx, &config, &path).await;
 
         while !ctx.is_exit {
-            update_state(&mut ctx, &mut record).await;
+            update_state(&mut ctx, &mut record, &bell).await;
             render(&mut ctx).await;
         }
     } else {
@@ -57,7 +61,7 @@ async fn main() {
             init(&mut ctx, &config, &file).await;
 
             while !ctx.is_exit {
-                update_state(&mut ctx, &mut record).await;
+                update_state(&mut ctx, &mut record, &bell).await;
                 render(&mut ctx).await;
             }
         } else {

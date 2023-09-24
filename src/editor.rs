@@ -446,9 +446,13 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
     offset
 }
 
-fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
+fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) -> String {
+    let deleted_str;
     if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
         ctx.curr_cursor_pos = ctx.selection_range.unwrap().0 .1;
+        deleted_str = String::from(
+            &ctx.buffer.buf[ctx.selection_range.unwrap().0 .0..=ctx.selection_range.unwrap().1 .0],
+        );
         record.apply(
             ctx,
             Change::DeleteSelection(
@@ -461,6 +465,9 @@ fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
         );
     } else {
         ctx.curr_cursor_pos = ctx.selection_range.unwrap().1 .1;
+        deleted_str = String::from(
+            &ctx.buffer.buf[ctx.selection_range.unwrap().1 .0..=ctx.selection_range.unwrap().0 .0],
+        );
         record.apply(
             ctx,
             Change::DeleteSelection(
@@ -473,6 +480,8 @@ fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) {
         );
     }
     ctx.selection_range = None;
+    update_view_buffer(ctx);
+    deleted_str
 }
 
 fn delete_word(ctx: &mut Context, record: &mut Record<Change>) {
@@ -495,9 +504,6 @@ fn delete_word(ctx: &mut Context, record: &mut Record<Change>) {
                 .unwrap(),
             ),
         );
-        // ctx.buffer
-        //     .buf
-        //     .replace_range(inter_buf_off.1 - (inline_offset - idx)..inter_buf_off.1, "");
         ctx.curr_cursor_pos.0 = idx;
     }
     update_view_buffer(ctx);
@@ -511,7 +517,7 @@ pub enum Change {
     Enter(usize),
     InsertChar(usize, char),
     Paste(usize, String),
-    Cut(usize, String),
+    CutLine(usize, String),
 }
 
 impl undo::Action for Change {
@@ -541,8 +547,15 @@ impl undo::Action for Change {
                     target.buffer.buf.insert(*idx, *c);
                 }
             }
-            Change::Paste(idx, s) => {}
-            Change::Cut(idx, s) => {}
+            Change::Paste(idx, s) => {
+                target.buffer.buf.insert_str(*idx, s);
+            }
+            Change::CutLine(idx, s) => {
+                target
+                    .buffer
+                    .buf
+                    .replace_range(*idx..=(*idx + s.len() - 1), "");
+            }
             Change::DeleteSelection(idx, s) => {
                 target
                     .buffer
@@ -575,8 +588,15 @@ impl undo::Action for Change {
                     target.buffer.buf.remove(*idx);
                 }
             }
-            Change::Paste(idx, s) => {}
-            Change::Cut(idx, s) => {}
+            Change::Paste(idx, s) => {
+                target
+                    .buffer
+                    .buf
+                    .replace_range(*idx..=(*idx + s.len() - 1), "");
+            }
+            Change::CutLine(idx, s) => {
+                target.buffer.buf.insert_str(*idx, s);
+            }
             Change::DeleteSelection(idx, s) => {
                 target.buffer.buf.insert_str(*idx, s);
             }
@@ -605,7 +625,30 @@ fn get_curr_line(ctx: &Context) -> String {
     String::from(&ctx.buffer.buf[first_idx..=second_idx])
 }
 
-pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
+fn delete_curr_line(ctx: &mut Context, record: &mut Record<Change>) {
+    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let mut first_idx = off;
+    for i in (0..off).rev() {
+        if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
+            first_idx -= 1;
+        } else {
+            break;
+        }
+    }
+    record.apply(ctx, Change::CutLine(first_idx, get_curr_line(ctx)));
+}
+
+fn paste(ctx: &mut Context, record: &mut Record<Change>) {
+    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let clipboard_text = ctx.clipboard.get_contents().unwrap();
+    record.apply(ctx, Change::Paste(off, clipboard_text));
+}
+
+pub async fn update_state(
+    ctx: &mut Context,
+    record: &mut Record<Change>,
+    bell: &macroquad::audio::Sound,
+) {
     match get_command() {
         Some(Command::ShiftSelectUp) => {
             if ctx.selection_range.is_none() {
@@ -674,10 +717,20 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
             todo!() // TODO
         }
         Some(Command::Undo) => {
+            if !record.can_undo() {
+                macroquad::audio::play_sound_once(*bell);
+                return;
+            }
             record.undo(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::Redo) => {
+            if !record.can_redo() {
+                macroquad::audio::play_sound_once(*bell);
+                return;
+            }
             record.redo(ctx);
+            update_view_buffer(ctx);
         }
         Some(Command::Copy) => {
             if ctx.selection_range.is_some() {
@@ -706,10 +759,28 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
             ctx.selection_range = None;
         }
         Some(Command::Cut) => {
-            todo!() // TODO
+            ctx.is_file_changed = true;
+            if ctx.selection_range.is_some() {
+                let deleted_str = delete_selection(ctx, record);
+                ctx.clipboard
+                    .set_contents(deleted_str)
+                    .expect("Failed when cutted text copied to system clipboard!");
+            } else {
+                let curr_line = get_curr_line(ctx);
+                ctx.clipboard
+                    .set_contents(curr_line)
+                    .expect("Failed when cutted text copied to system clipboard!");
+                delete_curr_line(ctx, record);
+            }
+            update_view_buffer(ctx);
         }
         Some(Command::Paste) => {
-            todo!() // TODO
+            ctx.is_file_changed = true;
+            if ctx.selection_range.is_some() {
+                delete_selection(ctx, record);
+            }
+            paste(ctx, record);
+            update_view_buffer(ctx);
         }
         Some(Command::OpenDocument) => {
             if let Some(file) = FileDialog::new()
@@ -729,6 +800,7 @@ pub async fn update_state(ctx: &mut Context, record: &mut Record<Change>) {
             if !ctx.is_file_changed {
                 ctx.is_exit = true
             } else {
+                macroquad::audio::play_sound_once(*bell);
                 ctx.mode = Modes::ModifiedPrompt;
                 prompt_unsaved_changes(ctx).await;
                 ctx.mode = Modes::Edit;
