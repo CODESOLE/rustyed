@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2023-09-24
+
+### Added
+- Copy/Cut/Paste added.
+- Notification bell added.
+
 ## [0.2.0] - 2023-09-22
 
 ### Added
