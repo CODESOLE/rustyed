@@ -448,6 +448,23 @@ pub fn get_ch_off_to_inline_off(ctx: &Context, off: usize) -> usize {
 
 fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) -> String {
     let deleted_str;
+    if ctx.selection_range.unwrap().0 .0 == ctx.selection_range.unwrap().1 .0
+        && ctx.selection_range.unwrap().0 .0 == ctx.buffer.buf.len() - 1
+    {
+        return String::from("");
+    }
+
+    // TODO: NOT WORK AS INTENDED !!!
+    // if ctx.selection_range.unwrap().1 .0 == ctx.buffer.buf.len() - 1 {
+    //     ctx.selection_range.unwrap().1 .0 = ctx.selection_range.unwrap().1 .0.saturating_sub(1);
+    //     ctx.selection_range.unwrap().1 .1 .0 =
+    //         ctx.selection_range.unwrap().1 .1 .0.saturating_sub(1);
+    // } else if ctx.selection_range.unwrap().0 .0 == ctx.buffer.buf.len() - 1 {
+    //     ctx.selection_range.unwrap().0 .0 = ctx.selection_range.unwrap().0 .0.saturating_sub(1);
+    //     ctx.selection_range.unwrap().0 .1 .0 =
+    //         ctx.selection_range.unwrap().0 .1 .0.saturating_sub(1);
+    // }
+
     if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
         ctx.curr_cursor_pos = ctx.selection_range.unwrap().0 .1;
         deleted_str = String::from(
@@ -635,7 +652,16 @@ fn delete_curr_line(ctx: &mut Context, record: &mut Record<Change>) {
             break;
         }
     }
-    record.apply(ctx, Change::CutLine(first_idx, get_curr_line(ctx)));
+    let curr_line = get_curr_line(ctx);
+    if ctx
+        .buffer
+        .buf
+        .chars()
+        .nth(first_idx + curr_line.len() + 1)
+        .is_some()
+    {
+        record.apply(ctx, Change::CutLine(first_idx, curr_line));
+    }
 }
 
 fn paste(ctx: &mut Context, record: &mut Record<Change>) {
