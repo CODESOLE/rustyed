@@ -797,6 +797,7 @@ pub async fn update_state(
                     .set_contents(curr_line)
                     .expect("Failed when cutted text copied to system clipboard!");
                 delete_curr_line(ctx, record);
+                ctx.curr_cursor_pos.0 = 0;
             }
             update_view_buffer(ctx);
         }
