@@ -1,6 +1,5 @@
 use std::{env, io};
 
-#[cfg(target_os = "windows")]
 use winres::WindowsResource;
 
 fn main() -> io::Result<()> {
