@@ -1,4 +1,5 @@
 # rustyed
+
 <img align="left" style="width:260px" src="assets/rustyed_icon.png">
 Very simple, primal text editor written in Rust, mostly for practising.<br>
 Very limited; ASCII only, not optimized, just for simple - quick editing.<br><br>
@@ -9,6 +10,7 @@ It has simple features;<br>-------------------------<br> - Search case (In)Sensi
 ![](assets/rustyeddemo.gif)
 
 # Shortcuts
+
 Not all shortcuts implemented yet.
 
 | Shortcut                             | Description                                      |
@@ -39,4 +41,5 @@ Not all shortcuts implemented yet.
 | `CTRL` - `Enter`                     | Insert new line below.                           |
 
 # LICENSE
+
 MIT
