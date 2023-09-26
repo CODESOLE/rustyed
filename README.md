@@ -2,7 +2,7 @@
 <img align="left" style="width:260px" src="assets/rustyed_icon.png">
 Very simple, primal text editor written in Rust, mostly for practising.<br>
 Very limited; ASCII only, not optimized, just for simple - quick editing.<br><br>
-It has simple features;<br>-------------------------<br> - Search case (In)Sensitive<br> - Goto Line<br> - Mouse click navigation<br><br><br><br>
+It has simple features;<br>-------------------------<br> - Search case (In)Sensitive<br> - Goto Line<br> - Mouse click navigation<br> - Copy/Cut/Paste<br> - Undo/Redo<br> - Keyboard & Mouse Text selection<br><br><br><br>
 
 # Demo GIF
 
@@ -26,16 +26,17 @@ Not all shortcuts implemented yet.
 | `Home`                               | Go to begining of line.                          |
 | `End`                                | Go to end of line.                               |
 | `Left/Right Arrow`                   | Move cursor by one char left/right.              |
-| `Shift` - `Up`/`Down`/`Left`/`Right`           | Select text.                                     |
+| `Shift` - `Up`/`Down`/`Left`/`Right` | Select text.                                     |
 | `CTRL` - `Left/Right Arrow`          | Move cursor by word left/right.                  |
 | `Up/Down Arrow`                      | Move cursor Up/Down.                             |
 | `Delete`                             | Delete char under cursor.                        |
 | `Backspace`                          | Remove previous char.                            |
-| `CTRL` - `W`                         | Delete previous word surrounded by space.          |
+| `CTRL` - `W`                         | Delete previous word surrounded by space.        |
 | `CTRL` - `C`/`X`/`V`                 | Copy/Cut/Paste.                                  |
 | `CTRL` - `Z`/`Y`                     | Undo/Redo.                                       |
-| `Shift` - `Up`/`Down`/`Right`/`Left` | Select text.                                     |
 | `Shift` - `PageUp`/`PageDown`        | Scroll left/right.                               |
+| `Shift` - `Enter`                    | Insert new line above.                           |
+| `CTRL` - `Enter`                     | Insert new line below.                           |
 
 # LICENSE
 MIT
