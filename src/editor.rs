@@ -49,6 +49,8 @@ pub enum Command {
     Copy,
     Paste,
     Cut,
+    InsertLFAbove,
+    InsertLFBelow,
     Delete,
     Enter,
     Backspace,
@@ -67,6 +69,10 @@ pub fn get_command() -> Option<Command> {
         Some(Command::ShiftSelectUp)
     } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Down) {
         Some(Command::ShiftSelectDown)
+    } else if is_key_down(KeyCode::LeftShift) && is_key_pressed(KeyCode::Enter) {
+        Some(Command::InsertLFAbove)
+    } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::Enter) {
+        Some(Command::InsertLFBelow)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::C) {
         Some(Command::Copy)
     } else if is_key_down(KeyCode::LeftControl) && is_key_pressed(KeyCode::X) {
@@ -532,6 +538,8 @@ pub enum Change {
     Delete(usize, char),
     Backspace(usize, char),
     Enter(usize),
+    InsertLFAbove(usize),
+    InsertLFBelow(usize),
     InsertChar(usize, char),
     Paste(usize, String),
     CutLine(usize, String),
@@ -579,6 +587,8 @@ impl undo::Action for Change {
                     .buf
                     .replace_range(*idx..=(*idx + s.len() - 1), "");
             }
+            Change::InsertLFAbove(idx) => target.buffer.buf.insert(*idx, '\n'),
+            Change::InsertLFBelow(idx) => target.buffer.buf.insert(*idx, '\n'),
         }
     }
 
@@ -616,6 +626,12 @@ impl undo::Action for Change {
             }
             Change::DeleteSelection(idx, s) => {
                 target.buffer.buf.insert_str(*idx, s);
+            }
+            Change::InsertLFAbove(idx) => {
+                target.buffer.buf.remove(*idx);
+            }
+            Change::InsertLFBelow(idx) => {
+                target.buffer.buf.remove(*idx);
             }
         }
     }
@@ -676,6 +692,28 @@ pub async fn update_state(
     bell: &macroquad::audio::Sound,
 ) {
     match get_command() {
+        Some(Command::InsertLFAbove) => {
+            if ctx.mode == Modes::Edit {
+                ctx.is_file_changed = true;
+                let inter_buf_off = get_internal_buf_offset(ctx).unwrap().1;
+                let inline_off = get_ch_off_to_inline_off(ctx, inter_buf_off);
+                record.apply(ctx, Change::InsertLFAbove(inter_buf_off - inline_off));
+                ctx.curr_cursor_pos.0 = 0;
+            }
+            update_view_buffer(ctx);
+        }
+        Some(Command::InsertLFBelow) => {
+            if ctx.mode == Modes::Edit {
+                ctx.is_file_changed = true;
+                let mut inter_buf_off = get_internal_buf_offset(ctx).unwrap().1;
+                while ctx.buffer.buf.chars().nth(inter_buf_off).unwrap() != '\n' {
+                    inter_buf_off += 1;
+                }
+                record.apply(ctx, Change::InsertLFBelow(inter_buf_off + 1));
+                ctx.curr_cursor_pos = (0, ctx.curr_cursor_pos.1 + 1);
+            }
+            update_view_buffer(ctx);
+        }
         Some(Command::ShiftSelectUp) => {
             if ctx.selection_range.is_none() {
                 let init_pos = get_internal_buf_offset(ctx).unwrap().1;
