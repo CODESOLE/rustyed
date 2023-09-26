@@ -3,7 +3,7 @@
 <img align="left" style="width:260px" src="assets/rustyed_icon.png">
 Very simple, primal text editor written in Rust, mostly for practising.<br>
 Very limited; ASCII only, not optimized, just for simple - quick editing.<br><br>
-It has simple features;<br>-------------------------<br> - Search case (In)Sensitive<br> - Goto Line<br> - Mouse click navigation<br> - Copy/Cut/Paste<br> - Undo/Redo<br> - Keyboard & Mouse Text selection<br><br><br><br>
+It has simple features;<br>-------------------------<br> - Search case (In)Sensitive<br> - Goto Line<br> - Mouse click navigation<br> - Copy/Cut/Paste<br> - Undo/Redo<br> - Keyboard & Mouse Text selection<br>
 
 # Demo GIF
 
