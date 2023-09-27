@@ -107,12 +107,16 @@ pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
             Some(id) => {
                 let (src, _) = db.face_source(id).unwrap();
                 if let fontdb::Source::File(ref path) = &src {
-                    fontt = load_ttf_font(&path.display().to_string()).await.unwrap();
+                    let p = path.display().to_string();
+                    println!("Selected font {}", &p);
+                    fontt = load_ttf_font(&p).await.unwrap();
                 } else {
+                    println!("Font couldn't detected. Fallback to embedded font!");
                     fontt = Font::default();
                 }
             }
             None => {
+                println!("Font couldn't detected. Fallback to embedded font!");
                 fontt = Font::default();
             }
         }
