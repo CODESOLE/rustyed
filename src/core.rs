@@ -95,7 +95,28 @@ fn is_font_monospaced(ctx: &Context) -> Option<f32> {
 pub async fn init(ctx: &mut Context, conf_path: &Path, file: &PathBuf) {
     let conf = parse_config(conf_path).unwrap_or_default();
     if let Some(fnt) = &conf.font {
-        ctx.font = load_ttf_font(fnt).await.unwrap_or_default();
+        let fontt;
+        let mut db = fontdb::Database::new();
+        db.load_system_fonts();
+        let query = fontdb::Query {
+            families: &[fontdb::Family::Name(fnt)],
+            weight: fontdb::Weight::NORMAL,
+            ..fontdb::Query::default()
+        };
+        match db.query(&query) {
+            Some(id) => {
+                let (src, _) = db.face_source(id).unwrap();
+                if let fontdb::Source::File(ref path) = &src {
+                    fontt = load_ttf_font(&path.display().to_string()).await.unwrap();
+                } else {
+                    fontt = Font::default();
+                }
+            }
+            None => {
+                fontt = Font::default();
+            }
+        }
+        ctx.font = fontt;
     }
     if let Some(bgcol) = conf.bg_col {
         ctx.bg_color = color_ascii_to_4u8(&bgcol);

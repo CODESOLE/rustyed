@@ -50,7 +50,7 @@ jobs:
         with:
           # (required)
           bin: rustyed
-          include: rustyed.conf,fonts,assets
+          include: rustyed.conf,assets
           asset: rustyed.conf,assets/rustyed.desktop,assets/rustyed.svg
           target: ${{ matrix.target }}
           # (optional) On which platform to distribute the `.tar.gz` file.

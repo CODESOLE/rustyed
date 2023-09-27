@@ -39,8 +39,13 @@ async fn main() {
         let path = PathBuf::from_str(&file)
             .and_then(|f| Ok(f))
             .expect("Document cannot open!");
-        let config = PathBuf::from_str("./rustyed.conf")
-            .expect("Config file (rustyed.conf) not found in current directory!");
+        let config = if cfg!(target_os = "windows") || cfg!(target_os = "macos") {
+            PathBuf::from_str("rustyed.conf")
+                .expect("Config file (rustyed.conf) not found in current directory!")
+        } else {
+            PathBuf::from_str("/etc/rustyed.conf")
+                .expect("Config file (rustyed.conf) not found in /etc/ directory!")
+        };
 
         init(&mut ctx, &config, &path).await;
 
@@ -55,8 +60,13 @@ async fn main() {
             .set_directory("/")
             .pick_file()
         {
-            let config = PathBuf::from_str("./rustyed.conf")
-                .expect("Config file (rustyed.conf) not found in current directory!");
+            let config = if cfg!(target_os = "windows") || cfg!(target_os = "macos") {
+                PathBuf::from_str("./rustyed.conf")
+                    .expect("Config file (rustyed.conf) not found in current directory!")
+            } else {
+                PathBuf::from_str("/etc/rustyed.conf")
+                    .expect("Config file (rustyed.conf) not found in /etc/ directory!")
+            };
 
             init(&mut ctx, &config, &file).await;
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-09-27
+
+### Added
+- Better font searching without needing to absoulete path.
+
 ## [0.4.1] - 2023-09-26
 
 ### Packaging

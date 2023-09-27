@@ -13,3 +13,4 @@ macroquad = "0.3.25"
 copypasta = "0.8.2"
 undo = "0.49.0"
 rfd = { version = "*", default-features = false, features = ['xdg-portal'] }
+fontdb = "0.14.1"
