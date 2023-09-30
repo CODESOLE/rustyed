@@ -5,7 +5,10 @@ use crate::{
 };
 use copypasta::ClipboardContext;
 use macroquad::prelude::*;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
 #[derive(PartialEq)]
 pub enum Modes {
@@ -46,6 +49,7 @@ pub struct Context {
     pub eof_indicator: bool,
     pub selection_range: Option<((usize, (usize, usize)), (usize, (usize, usize)))>,
     pub clipboard: ClipboardContext,
+    pub timer: Option<Instant>,
 }
 
 impl Default for Context {
@@ -77,6 +81,7 @@ impl Default for Context {
             eof_indicator: false,
             selection_range: None,
             clipboard: ClipboardContext::new().expect("Failed when creating clipboard context!"),
+            timer: None,
         }
     }
 }

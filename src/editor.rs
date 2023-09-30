@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Instant};
 
 use copypasta::{self, ClipboardProvider};
 use macroquad::{
@@ -14,7 +14,7 @@ use undo::Record;
 
 use crate::{
     core::{Context, Modes, SearchResults},
-    render::{from_cells_to_string, from_str_to_cells, render},
+    render::{from_cells_to_string, from_str_to_cells, render, Cell},
 };
 
 pub enum Command {
@@ -40,6 +40,7 @@ pub enum Command {
     WordMoveLeft,
     WordMoveRight,
     MouseLeftClick,
+    MouseDown,
     ShiftSelectUp,
     ShiftSelectDown,
     ShiftSelectLeft,
@@ -123,6 +124,8 @@ pub fn get_command() -> Option<Command> {
         Some(Command::Enter)
     } else if is_mouse_button_pressed(MouseButton::Left) {
         Some(Command::MouseLeftClick)
+    } else if input::is_mouse_button_down(MouseButton::Left) {
+        Some(Command::MouseDown)
     } else if is_key_pressed(KeyCode::PageDown) {
         Some(Command::PageDown)
     } else if is_key_pressed(KeyCode::Home) {
@@ -686,6 +689,30 @@ fn paste(ctx: &mut Context, record: &mut Record<Change>) {
     record.apply(ctx, Change::Paste(off, clipboard_text));
 }
 
+fn get_cell_under_cursor(ctx: &Context) -> &Cell {
+    let (x, y) = input::mouse_position();
+    let cell_y = (y / ctx.font_size as f32).floor() as usize;
+    let cell = ctx
+        .cells
+        .iter()
+        .filter(|c| c.pos.1 == cell_y)
+        .find(|c| c.coord.0 < x && x < (c.coord.0 + c.bound.0));
+    if let Some(c) = cell {
+        return c;
+    } else {
+        let cel = ctx
+            .cells
+            .iter()
+            .filter(|c| c.pos.1 == cell_y)
+            .find(|c| c.c == '\n');
+        if cel.is_some() {
+            return cel.unwrap();
+        } else {
+            return ctx.cells.iter().last().unwrap();
+        }
+    }
+}
+
 pub async fn update_state(
     ctx: &mut Context,
     record: &mut Record<Change>,
@@ -909,6 +936,37 @@ pub async fn update_state(
             update_view_buffer(ctx);
             ctx.prompt_input.clear();
             ctx.mode = Modes::Edit;
+        }
+        Some(Command::MouseDown) => {
+            if ctx.timer.is_none() {
+                ctx.timer = Some(Instant::now());
+            }
+            if ctx.timer.unwrap().elapsed().as_millis() > 100 {
+                if ctx.selection_range.is_none() {
+                    let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                    ctx.selection_range = Some((
+                        (init_pos, ctx.curr_cursor_pos),
+                        (init_pos, ctx.curr_cursor_pos),
+                    ));
+                }
+                loop {
+                    let cell = get_cell_under_cursor(ctx);
+                    ctx.curr_cursor_pos = cell.pos;
+                    ctx.selection_range = Some((
+                        ctx.selection_range.unwrap().0,
+                        (get_internal_buf_offset(ctx).unwrap().1, ctx.curr_cursor_pos),
+                    ));
+                    if input::is_mouse_button_released(MouseButton::Left) {
+                        let sel_range = ctx.selection_range.unwrap();
+                        if (sel_range.0 .0 as isize - sel_range.1 .0 as isize) == 0isize {
+                            ctx.selection_range = None;
+                        }
+                        ctx.timer = None;
+                        break;
+                    }
+                    render(ctx).await;
+                }
+            }
         }
         Some(Command::MouseLeftClick) => {
             ctx.selection_range = None;
