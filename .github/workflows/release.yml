@@ -18,12 +18,8 @@ jobs:
       - uses: actions/checkout@v3
       - uses: taiki-e/create-gh-release-action@v1
         with:
-          # (Optional) Path to changelog.
           changelog: CHANGELOG.md
-          # (Optional) Reject releases from commits not contained in branches
-          # that match the specified pattern (regular expression)
           branch: main
-          # (required) GitHub token for creating GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
 
 
@@ -48,19 +44,11 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          # (required)
           bin: rustyed
           include: rustyed.conf
           asset: rustyed.conf,assets/rustyed.desktop,assets/rustyed.svg
           target: ${{ matrix.target }}
-          # (optional) On which platform to distribute the `.tar.gz` file.
-          # [default value: unix]
-          # [possible values: all, unix, windows, none]
           tar: unix
-          # (optional) On which platform to distribute the `.zip` file.
-          # [default value: windows]
-          # [possible values: all, unix, windows, none]
           zip: windows
         env:
-          # (required)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
