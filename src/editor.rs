@@ -1105,7 +1105,7 @@ pub async fn update_state(
                         ctx.buffer.buf.chars().nth(inter_buf_off.1 - 1).unwrap(),
                     ),
                 );
-                // ctx.buffer.buf.remove(inter_buf_off.1 - 1);
+
                 if inline_off != 0 {
                     ctx.curr_cursor_pos.0 -= 1;
                 } else {

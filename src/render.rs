@@ -57,7 +57,7 @@ pub struct Cell {
     pub coord: (f32, f32),
     pub bound: (f32, f32),
     pub pos: (usize, usize),
-    pub bg_color: Color,
+    pub bg_color: std::cell::Cell<Color>,
 }
 
 pub fn from_str_to_cells(ctx: &mut Context) {
@@ -95,7 +95,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     coord: (x_coor, y_coor),
                     bound: (w, ctx.font_size as f32),
                     pos: (j, y_line_off),
-                    bg_color: ctx.bg_color,
+                    bg_color: std::cell::Cell::new(ctx.bg_color),
                 });
             }
         } else {
@@ -108,7 +108,7 @@ pub fn from_str_to_cells(ctx: &mut Context) {
                     coord: (x_coor, y_coor),
                     bound: (letter_size.width, ctx.font_size as f32),
                     pos: (j, y_line_off),
-                    bg_color: ctx.bg_color,
+                    bg_color: std::cell::Cell::new(ctx.bg_color),
                 });
             }
         }
@@ -309,25 +309,29 @@ fn draw_selection(ctx: &Context) {
         .find(|&(_, c)| c.pos == ctx.selection_range.unwrap().0 .1)
         .unwrap()
         .0;
-    if ctx.selection_range.unwrap().0 .0 < ctx.selection_range.unwrap().1 .0 {
+    if start < end {
+        for c in &ctx.cells[..start] {
+            c.bg_color.set(ctx.bg_color);
+        }
         for c in &ctx.cells[start..=end] {
-            draw_rectangle(
-                c.coord.0,
-                c.coord.1,
-                c.bound.0,
-                c.bound.1,
-                ctx.selection_col,
-            );
+            c.bg_color.set(ctx.selection_col);
+        }
+        if ctx.cells.get(end + 1).is_some() {
+            for c in &ctx.cells[end + 1..] {
+                c.bg_color.set(ctx.bg_color);
+            }
         }
     } else {
+        for c in &ctx.cells[..end] {
+            c.bg_color.set(ctx.bg_color);
+        }
         for c in &ctx.cells[end..=start] {
-            draw_rectangle(
-                c.coord.0,
-                c.coord.1,
-                c.bound.0,
-                c.bound.1,
-                ctx.selection_col,
-            );
+            c.bg_color.set(ctx.selection_col);
+        }
+        if ctx.cells.get(start + 1).is_some() {
+            for c in &ctx.cells[start + 1..] {
+                c.bg_color.set(ctx.bg_color);
+            }
         }
     }
 }
@@ -344,18 +348,20 @@ pub async fn render(ctx: &Context) {
         .next()
         .unwrap();
     for cell in ctx.cells.iter() {
-        if cell.c == '\n' {
-            continue;
-        }
         draw_rectangle(
             cell.coord.0,
             cell.coord.1,
             cell.bound.0,
             cell.bound.1,
-            cell.bg_color,
+            cell.bg_color.get(),
         );
         if ctx.selection_range.is_some() {
             draw_selection(ctx);
+        } else {
+            cell.bg_color.set(ctx.bg_color);
+        }
+        if cell.c == '\n' {
+            continue;
         }
         draw_text_ex(
             &cell.c.to_string(),

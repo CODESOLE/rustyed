@@ -51,7 +51,7 @@ async fn main() {
 
         while !ctx.is_exit {
             update_state(&mut ctx, &mut record, &bell).await;
-            render(&mut ctx).await;
+            render(&ctx).await;
         }
     } else {
         if let Some(file) = FileDialog::new()
@@ -72,7 +72,7 @@ async fn main() {
 
             while !ctx.is_exit {
                 update_state(&mut ctx, &mut record, &bell).await;
-                render(&mut ctx).await;
+                render(&ctx).await;
             }
         } else {
             eprintln!("Invalid file selected!");
