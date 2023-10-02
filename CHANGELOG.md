@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- On Linux, more config file search path added. '/etc/rustyed/rustyed.conf:$HOME/.config/rustyed/rustyed.conf:./rustyed'
+
 ## [0.6.0] - 2023-09-30
 
 ### Added
