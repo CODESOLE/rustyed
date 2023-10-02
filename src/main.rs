@@ -43,8 +43,18 @@ async fn main() {
             PathBuf::from_str("rustyed.conf")
                 .expect("Config file (rustyed.conf) not found in current directory!")
         } else {
-            PathBuf::from_str("/etc/rustyed.conf")
-                .expect("Config file (rustyed.conf) not found in /etc/ directory!")
+            PathBuf::from_str("./rustyed.conf")
+                .or_else(|_| {
+                    PathBuf::from_str(
+                        format!(
+                            "{}/rustyed/rustyed.conf",
+                            std::env::var("XDG_CONFIG_HOME").unwrap()
+                        )
+                        .as_str(),
+                    )
+                    .or_else(|_| PathBuf::from_str("/etc/rustyed/rustyed.conf"))
+                })
+                .expect("Cannot find config file rustyed.conf!")
         };
 
         init(&mut ctx, &config, &path).await;
