@@ -955,8 +955,10 @@ pub async fn update_state(
                     ctx.selection_range = Some((
                         ctx.selection_range.unwrap().0,
                         (get_internal_buf_offset(ctx).unwrap().1, ctx.curr_cursor_pos),
+                        // (ctx.selection_range.unwrap().1 .0, ctx.curr_cursor_pos),
                     ));
                     if input::is_mouse_button_released(MouseButton::Left) {
+                        // ctx.selection_range.unwrap().1 .0 = get_internal_buf_offset(ctx).unwrap().1;
                         let sel_range = ctx.selection_range.unwrap();
                         if (sel_range.0 .0 as isize - sel_range.1 .0 as isize) == 0isize {
                             ctx.selection_range = None;
