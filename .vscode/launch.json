@@ -8,7 +8,8 @@
             "cwd": "${workspaceFolder}",
             "args": ["Cargo.toml"],
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
-            "stopAtEntry": true
+            "stopAtEntry": true,
+            "preLaunchTask": "build"
         },
         {
             "name": "Launch with args: Cargo.lock",
@@ -17,7 +18,8 @@
             "cwd": "${workspaceFolder}",
             "args": ["Cargo.lock"],
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
-            "stopAtEntry": true
+            "stopAtEntry": true,
+            "preLaunchTask": "build"
         },
         {
             "name": "Launch without args",
@@ -25,7 +27,8 @@
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}",
-            "stopAtEntry": true
+            "stopAtEntry": true,
+            "preLaunchTask": "build"
         }
     ]
 }
