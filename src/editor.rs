@@ -555,7 +555,8 @@ fn get_view_pos_from_internal_off(ctx: &Context, off: usize) -> (usize, usize) {
         .enumerate()
         .find(|(_, l)| l.0 + x + 1 == off)
         .unwrap()
-        .0 + 1;
+        .0
+        + 1;
     println!("x: {x}, y: {y}");
     (x, y % ctx.vert_cell_count.1)
 }
@@ -568,15 +569,19 @@ impl undo::Action for Change {
         match self {
             Change::DeleteWord(idx, s) => {
                 target.buffer.buf.replace_range(*idx..*idx + s.len(), "");
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::Delete(idx, _) => {
                 target.buffer.buf.remove(*idx);
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::Backspace(idx, _) => {
                 target.buffer.buf.remove(*idx);
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::Enter(idx) => {
                 target.buffer.buf.insert(*idx, '\n');
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::InsertChar(idx, c) => {
                 if *c == '\t' {
@@ -586,24 +591,34 @@ impl undo::Action for Change {
                 } else {
                     target.buffer.buf.insert(*idx, *c);
                 }
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::Paste(idx, s) => {
                 target.buffer.buf.insert_str(*idx, s);
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::CutLine(idx, s) => {
                 target
                     .buffer
                     .buf
                     .replace_range(*idx..=(*idx + s.len() - 1), "");
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
             Change::DeleteSelection(idx, s) => {
                 target
                     .buffer
                     .buf
                     .replace_range(*idx..=(*idx + s.len() - 1), "");
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
             }
-            Change::InsertLFAbove(idx) => target.buffer.buf.insert(*idx, '\n'),
-            Change::InsertLFBelow(idx) => target.buffer.buf.insert(*idx, '\n'),
+            Change::InsertLFAbove(idx) => {
+                target.buffer.buf.insert(*idx, '\n');
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
+            }
+            Change::InsertLFBelow(idx) => {
+                target.buffer.buf.insert(*idx, '\n');
+                target.curr_cursor_pos = get_view_pos_from_internal_off(target, *idx);
+            }
         }
     }
 
