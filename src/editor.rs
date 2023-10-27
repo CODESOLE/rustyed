@@ -545,6 +545,9 @@ pub enum Change {
 
 fn get_view_pos_from_internal_off(ctx: &Context, off: usize) -> (usize, usize) {
     let x = get_ch_off_to_inline_off(ctx, off);
+    if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
+        return (x, 0);
+    }
     let y = ctx
         .buffer
         .buf
