@@ -1,0 +1,47 @@
+{
+  "configurations": {
+    "Launch with args: Cargo.toml": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "type": "rust",
+        "request": "launch",
+        "program": "${workspaceRoot}/target/debug/rustyed",
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "BASEPATH": "${workspaceRoot}"
+        },
+        "args": [
+          "Cargo.toml"
+        ]
+      }
+    },
+    "Launch with args: Cargo.lock": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "type": "rust",
+        "request": "launch",
+        "program": "${workspaceRoot}/target/debug/rustyed",
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "BASEPATH": "${workspaceRoot}"
+        },
+        "args": [
+          "Cargo.lock"
+        ]
+      }
+    },
+    "Launch without args": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "type": "rust",
+        "request": "launch",
+        "program": "${workspaceRoot}/target/debug/rustyed",
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "BASEPATH": "${workspaceRoot}"
+        },
+        "args": []
+      }
+    }
+  }
+}
