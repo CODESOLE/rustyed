@@ -314,7 +314,7 @@ fn move_cursor_up(ctx: &mut Context) {
     if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
         return ();
     }
-    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
     if ctx.curr_cursor_pos.1 == 0 && inter_buf_off.0.is_some() {
         ctx.vert_cell_count.0 -= 1;
         ctx.curr_cursor_pos = (0, 0);
@@ -346,7 +346,7 @@ fn move_cursor_down(ctx: &mut Context) {
     {
         return ();
     }
-    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
     if ctx.curr_cursor_pos.1 == (ctx.vert_cell_count.1 - 1)
         && ctx.buffer.buf[inter_buf_off.1..]
             .chars()
@@ -432,7 +432,7 @@ impl InternalBufOffset {
     }
 }
 
-fn get_internal_buf_offset(ctx: &Context) -> Option<InternalBufOffset> {
+fn get_cursor_pos_to_buf_offset(ctx: &Context) -> Option<InternalBufOffset> {
     if ctx.vert_cell_count.0 == 0 && ctx.curr_cursor_pos.1 == 0 {
         return Some(InternalBufOffset(None, ctx.curr_cursor_pos.0));
     }
@@ -506,7 +506,7 @@ fn delete_selection(ctx: &mut Context, record: &mut Record<Change>) -> String {
 }
 
 fn delete_word(ctx: &mut Context, record: &mut Record<Change>) {
-    let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+    let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
     let inline_offset = inter_buf_off.get_inline_offset();
     let str;
     if let Some(lfidx) = inter_buf_off.0 {
@@ -678,7 +678,7 @@ impl undo::Action for Change {
 }
 
 fn get_curr_line(ctx: &Context) -> String {
-    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let off = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
     let mut first_idx = off;
     for i in (0..off).rev() {
         if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
@@ -699,7 +699,7 @@ fn get_curr_line(ctx: &Context) -> String {
 }
 
 fn delete_curr_line(ctx: &mut Context, record: &mut Record<Change>) {
-    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let off = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
     let mut first_idx = off;
     for i in (0..off).rev() {
         if ctx.buffer.buf.chars().nth(i).unwrap() != '\n' {
@@ -721,7 +721,7 @@ fn delete_curr_line(ctx: &mut Context, record: &mut Record<Change>) {
 }
 
 fn paste(ctx: &mut Context, record: &mut Record<Change>) {
-    let off = get_internal_buf_offset(ctx).unwrap().1;
+    let off = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
     let clipboard_text = ctx.clipboard.get_contents().unwrap();
     record.apply(ctx, Change::Paste(off, clipboard_text));
 }
@@ -759,7 +759,7 @@ pub async fn update_state(
         Some(Command::InsertLFAbove) => {
             if ctx.mode == Modes::Edit {
                 ctx.is_file_changed = true;
-                let inter_buf_off = get_internal_buf_offset(ctx).unwrap().1;
+                let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 let inline_off = get_ch_off_to_inline_off(ctx, inter_buf_off);
                 record.apply(ctx, Change::InsertLFAbove(inter_buf_off - inline_off));
                 ctx.curr_cursor_pos.0 = 0;
@@ -769,7 +769,7 @@ pub async fn update_state(
         Some(Command::InsertLFBelow) => {
             if ctx.mode == Modes::Edit {
                 ctx.is_file_changed = true;
-                let mut inter_buf_off = get_internal_buf_offset(ctx).unwrap().1;
+                let mut inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 while ctx.buffer.buf.chars().nth(inter_buf_off).unwrap() != '\n' {
                     inter_buf_off += 1;
                 }
@@ -780,14 +780,14 @@ pub async fn update_state(
         }
         Some(Command::ShiftSelectUp) => {
             if ctx.selection_range.is_none() {
-                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                let init_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 ctx.selection_range = Some((
                     (init_pos, ctx.curr_cursor_pos),
                     (init_pos, ctx.curr_cursor_pos),
                 ));
             }
             move_cursor_up(ctx);
-            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            let curr_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
             ctx.selection_range = Some((
                 ctx.selection_range.unwrap().0,
                 (curr_pos, ctx.curr_cursor_pos),
@@ -795,14 +795,14 @@ pub async fn update_state(
         }
         Some(Command::ShiftSelectLeft) => {
             if ctx.selection_range.is_none() {
-                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                let init_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 ctx.selection_range = Some((
                     (init_pos, ctx.curr_cursor_pos),
                     (init_pos, ctx.curr_cursor_pos),
                 ));
             }
             move_cursor_left(ctx);
-            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            let curr_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
             ctx.selection_range = Some((
                 ctx.selection_range.unwrap().0,
                 (curr_pos, ctx.curr_cursor_pos),
@@ -810,14 +810,14 @@ pub async fn update_state(
         }
         Some(Command::ShiftSelectRight) => {
             if ctx.selection_range.is_none() {
-                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                let init_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 ctx.selection_range = Some((
                     (init_pos, ctx.curr_cursor_pos),
                     (init_pos, ctx.curr_cursor_pos),
                 ));
             }
             move_cursor_right(ctx);
-            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            let curr_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
             ctx.selection_range = Some((
                 ctx.selection_range.unwrap().0,
                 (curr_pos, ctx.curr_cursor_pos),
@@ -825,14 +825,14 @@ pub async fn update_state(
         }
         Some(Command::ShiftSelectDown) => {
             if ctx.selection_range.is_none() {
-                let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                let init_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                 ctx.selection_range = Some((
                     (init_pos, ctx.curr_cursor_pos),
                     (init_pos, ctx.curr_cursor_pos),
                 ));
             }
             move_cursor_down(ctx);
-            let curr_pos = get_internal_buf_offset(ctx).unwrap().1;
+            let curr_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
             ctx.selection_range = Some((
                 ctx.selection_range.unwrap().0,
                 (curr_pos, ctx.curr_cursor_pos),
@@ -980,7 +980,7 @@ pub async fn update_state(
             }
             if ctx.timer.unwrap().elapsed().as_millis() > 100 {
                 if ctx.selection_range.is_none() {
-                    let init_pos = get_internal_buf_offset(ctx).unwrap().1;
+                    let init_pos = get_cursor_pos_to_buf_offset(ctx).unwrap().1;
                     ctx.selection_range = Some((
                         (init_pos, ctx.curr_cursor_pos),
                         (init_pos, ctx.curr_cursor_pos),
@@ -991,7 +991,10 @@ pub async fn update_state(
                     ctx.curr_cursor_pos = cell.pos;
                     ctx.selection_range = Some((
                         ctx.selection_range.unwrap().0,
-                        (get_internal_buf_offset(ctx).unwrap().1, ctx.curr_cursor_pos),
+                        (
+                            get_cursor_pos_to_buf_offset(ctx).unwrap().1,
+                            ctx.curr_cursor_pos,
+                        ),
                         // (ctx.selection_range.unwrap().1 .0, ctx.curr_cursor_pos),
                     ));
                     if input::is_mouse_button_released(MouseButton::Left) {
@@ -1117,7 +1120,7 @@ pub async fn update_state(
 
             ctx.mode = Modes::Edit;
             ctx.is_file_changed = true;
-            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
             record.apply(ctx, Change::Enter(inter_buf_off.1));
             move_cursor_down(ctx);
             ctx.curr_cursor_pos.0 = 0;
@@ -1130,12 +1133,10 @@ pub async fn update_state(
                 return;
             }
 
-            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
-            let inline_off = inter_buf_off.get_inline_offset();
+            let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
             if inter_buf_off.1 == 0 {
                 ()
             } else {
-                let inline_offset = get_ch_off_to_inline_off(ctx, inter_buf_off.1 - 1);
                 ctx.is_file_changed = true;
                 record.apply(
                     ctx,
@@ -1144,12 +1145,6 @@ pub async fn update_state(
                         ctx.buffer.buf.chars().nth(inter_buf_off.1 - 1).unwrap(),
                     ),
                 );
-
-                if inline_off != 0 {
-                    ctx.curr_cursor_pos.0 -= 1;
-                } else {
-                    ctx.curr_cursor_pos = (inline_offset, ctx.curr_cursor_pos.1 - 1);
-                }
             }
             update_view_buffer(ctx);
         }
@@ -1160,13 +1155,13 @@ pub async fn update_state(
                 return;
             }
 
-            if get_internal_buf_offset(ctx).unwrap().1
+            if get_cursor_pos_to_buf_offset(ctx).unwrap().1
                 == ctx.buffer.buf.char_indices().last().unwrap().0
             {
                 ()
             } else {
                 ctx.is_file_changed = true;
-                let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+                let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
                 record.apply(
                     ctx,
                     Change::Delete(
@@ -1183,7 +1178,7 @@ pub async fn update_state(
             }
 
             ctx.is_file_changed = true;
-            let inter_buf_off = get_internal_buf_offset(ctx).unwrap();
+            let inter_buf_off = get_cursor_pos_to_buf_offset(ctx).unwrap();
             record.apply(ctx, Change::InsertChar(inter_buf_off.1, c));
             if c == '\t' {
                 for _ in 0..ctx.tab_width {
